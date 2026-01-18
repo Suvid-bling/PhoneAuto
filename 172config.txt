@@ -1,0 +1,27 @@
+{
+  "ip_dict": {
+    "172.16.227.32": "10-zhxg-172_16_227_32",
+    "172.16.212.171": "11-zhxg-172_16_212_171",
+    "172.16.209.72": "12-zhxg-172_16_209_72",
+    "172.16.42.55": "1-zhxg-172_16_42_55",
+    "172.16.204.10": "13-zhxg-172_16_204_10"
+  },    
+  "domain": "http://172.16.162.64:8002",
+  "image": "registry.cn-guangzhou.aliyuncs.com/mytos/dobox:Q12_base_202510101731",
+  "host_local": "172.16.162.64:5000",
+  "ip": "172.16.212.171",
+  "host_rpc": "36.133.80.179:7152/zhxg-MYTSDK",
+  "redis_url": "redis://zjl:hZohdCUneLEo@192.168.223.202:6386/2",
+  "update_account_url": "http://192.168.223.144:9000/android/updateAccountHeaders/",
+  "info_list": [
+    ["6134686081",1,"http://api.sms28.top/uuid-page/570651a470ef4443b48b35c0e9ba0316", ""],
+    ["6134686251",2,"http://api.sms28.top/uuid-page/14d306c7fc8f487fa4385c463e148b4b", ""],
+    ["6134686286",3,"http://api.sms28.top/uuid-page/28f1eb3a2091418aae6cc8e876e29341", ""],
+    ["6134686404",4,"http://api.sms28.top/uuid-page/ace48377d88943628ec03e5323d0ee69", ""],
+    ["6134686541",5,"http://api.sms28.top/uuid-page/64450993614943fdbfc0e89fd3c8eee3", ""],
+    ["6134686675",6,"http://api.sms28.top/uuid-page/3b3347a26ff14c64b307db821b6e0dd6", ""],
+    ["6727223459",7,"http://api.sms28.top/uuid-page/fe3a1f2a75834699a65997e0c9cf3046", ""],
+    ["6727223567",8,"http://api.sms28.top/uuid-page/f69140611ff34435adcf347aee084b28", ""]
+  ]
+
+}

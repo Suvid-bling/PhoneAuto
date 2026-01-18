@@ -1,0 +1,21 @@
+# Core dependencies for mobile automation and testing
+airtest>=1.2.0
+aircv>=1.4.0
+
+# HTTP requests and web scraping
+requests>=2.28.0
+
+# Logging
+loguru>=0.6.0
+
+# Database and caching
+redis>=4.0.0
+
+# Image processing
+Pillow>=9.0.0
+
+# Data validation
+pydantic>=1.9.0
+
+# Custom XHS crawler (may need to be installed from source)
+# xhs-crawler>=0.1.0
