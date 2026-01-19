@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Add parent directory to path FIRST
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import base64
 import json
 import time
@@ -5,10 +11,10 @@ import aircv as ac
 import requests
 from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
-from Auto import AutoPhone
-import os
 import random
 import threading
+
+from Autolization.AutoOperate import AutoPhone
 
 # Load config
 config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
@@ -31,7 +37,7 @@ def call_SmsUrl(sms_url: str):
     """循环请求短信验证码直到获取到"""
     import re
     
-    max_attempts = 15
+    max_attempts = 18
     
     for attempt in range(max_attempts):
         response = requests.get(sms_url, timeout=10)
@@ -129,6 +135,6 @@ if __name__ == '__main__':
             login_process(device_info)
     else:
         # Use threading to process multiple devices in parallel
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             executor.map(login_process, config["info_list"])
     

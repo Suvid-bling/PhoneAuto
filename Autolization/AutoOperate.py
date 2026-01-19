@@ -3,12 +3,14 @@
 
 import subprocess
 import os
+import sys
 import random
 import requests
 import time
-import aircv as ac
-import base64
-from PIL import Image, ImageDraw, ImageFont
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from Autolization.ImgHandle import ImgHandle
 
 
 class AutoPhone:
@@ -29,6 +31,9 @@ class AutoPhone:
         self.name = name
         self.device_addr = f"{ip}:{port}"
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Initialize image handler
+        self.img_handler = ImgHandle(host=host, ip=ip, name=name)
 
         # Connect to device if auto_connect is True
         if auto_connect:
@@ -93,89 +98,20 @@ class AutoPhone:
             print(f"Error disconnecting: {e}")
         
     def get_screenshot_base64(self):
-        """Get screenshot from device via API"""
-        url = f"http://{self.host}/screenshots/{self.ip}/{self.name}/3"
-        try:
-            resp = requests.get(url)
-            data = resp.json()
-            return data.get("msg")
-        except Exception as e:
-            print(f"Error getting screenshot: {e}")
-            return None
+        """Get screenshot from device via API - delegates to ImgHandle"""
+        return self.img_handler.get_screenshot_base64()
 
     def save_base64_as_image(self, base64_data, output_path):
-        """Save base64 image data to file"""
-        if base64_data.startswith('data:image'):
-            comma_index = base64_data.find(',')
-            if comma_index != -1:
-                base64_data = base64_data[comma_index + 1:]
-        
-        try:
-            image_data = base64.b64decode(base64_data)
-            with open(output_path, 'wb') as f:
-                f.write(image_data)
-            return True
-        except Exception as e:
-            print(f"Error saving image: {e}")
-            return False
+        """Save base64 image data to file - delegates to ImgHandle"""
+        return self.img_handler.save_base64_as_image(base64_data, output_path)
 
     def match_image(self, src_img_path, obj_img_path, threshold=0.7):
-        """Match template image in source image using aircv"""
-        try:
-            src_img = ac.imread(src_img_path)
-            obj_img = ac.imread(obj_img_path)
-            match_result = ac.find_template(src_img, obj_img, threshold=threshold, rgb=True, bgremove=False)
-            return match_result
-        except Exception as e:
-            print(f"Image matching failed: {e}")
-            return None
+        """Match template image in source image - delegates to ImgHandle"""
+        return self.img_handler.match_image(src_img_path, obj_img_path, threshold)
 
     def draw_match_result(self, src_img_path, match_result, output_path="result.png"):
-        """
-        在源图像上标记匹配区域并保存结果
-        
-        参数:
-        src_img_path: 源图像路径
-        match_result: 匹配结果字典
-        output_path: 输出图像路径
-        """
-        if match_result is None:
-            print("未找到匹配区域")
-            return
-            
-        # 打开源图像
-        img = Image.open(src_img_path)
-        draw = ImageDraw.Draw(img)
-        
-        # 获取匹配区域的位置和大小
-        pos = match_result['rectangle']
-        confidence = match_result['confidence']
-        
-        # 修复：将四个点的坐标转换为左上角和右下角的坐标
-        x_coords = [point[0] for point in pos]
-        y_coords = [point[1] for point in pos]
-        left = min(x_coords)
-        top = min(y_coords)
-        right = max(x_coords)
-        bottom = max(y_coords)
-        
-        # 绘制矩形标记匹配区域
-        draw.rectangle([left, top, right, bottom], outline="red", width=2)
-        
-        # 添加置信度文本
-        try:
-            font = ImageFont.truetype("simhei.ttf", 16)
-        except IOError:
-            # 如果找不到中文字体，使用默认字体
-            font = None
-            
-        text = f"匹配度: {confidence:.2f}"
-        text_pos = (pos[0][0], pos[0][1] - 20)
-        draw.text(text_pos, text, fill="red", font=font)
-        
-        # 保存结果图像
-        img.save(output_path)
-        print(f"匹配结果已保存至 {output_path}")
+        """Draw match result on image - delegates to ImgHandle"""
+        return self.img_handler.draw_match_result(src_img_path, match_result, output_path)
 
     def human_type_text(self, text, min_delay=0.1, max_delay=0.3):
         """
@@ -196,65 +132,9 @@ class AutoPhone:
         print(f"Typed '{text}' with human-like timing")
 
     def wait_for_image(self, img_name, timeout=50, threshold=0.7, interval=1):
-        """
-        Wait for an image to appear on screen (similar to airtest wait function)
-        
-        Args:
-            img_name: Image filename in img/ directory
-            timeout: Maximum time to wait in seconds
-            threshold: Matching threshold (0.0-1.0)
-            interval: Check interval in seconds
-            
-        Returns:
-            dict: Match result if found, None if timeout
-        """
-        img_path = os.path.join(self.script_dir, f"img/{img_name}")
-        
-        if not os.path.exists(img_path):
-            print(f"Template image not found: {img_path}")
-            return None
-        
-        start_time = time.time()
-        temp_screenshot = os.path.join(self.script_dir, "temp_wait_screenshot.png")
-        
-        print(f"Waiting for {img_name} (timeout: {timeout}s, threshold: {threshold})")
-        
-        while time.time() - start_time < timeout:
-            # Get current screenshot
-            screenshot_base64 = self.get_screenshot_base64()
-            if not screenshot_base64:
-                time.sleep(interval)
-                continue
-                
-            # Save screenshot temporarily
-            if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
-                time.sleep(interval)
-                continue
-            
-            # Match template
-            match_result = self.match_image(temp_screenshot, img_path, threshold)
-            
-            if match_result and match_result['confidence'] >= threshold:
-                # Clean up temp file
-                try:
-                    os.remove(temp_screenshot)
-                except:
-                    pass
-                    
-                elapsed_time = time.time() - start_time
-                print(f"Found {img_name} after {elapsed_time:.1f}s with confidence {match_result['confidence']:.2f}")
-                return match_result
-            
-            time.sleep(interval)
-        
-        # Clean up temp file
-        try:
-            os.remove(temp_screenshot)
-        except:
-            pass
-            
-        print(f"Timeout waiting for {img_name} after {timeout} seconds")
-        return None
+        """Wait for an image to appear on screen - delegates to ImgHandle"""
+        img_dir = os.path.join(self.script_dir, "img")
+        return self.img_handler.wait_for_image(img_name, timeout, threshold, interval, img_dir)
 
     def wait_and_click(self, img_name, timeout=50, threshold=0.7, interval=1):
         """
@@ -282,50 +162,9 @@ class AutoPhone:
         return self.api_adb_shell(f"input tap {x} {y}")
 
     def element_exists(self, img_name, threshold=0.7):
-        """
-        Check if an element exists on screen immediately without waiting or clicking
-        
-        Args:
-            img_name: Image filename in img/ directory
-            threshold: Matching threshold (0.0-1.0)
-            
-        Returns:
-            dict: Match result if found, None if not found
-        """
-        img_path = os.path.join(self.script_dir, f"img/{img_name}")
-        
-        if not os.path.exists(img_path):
-            print(f"Template image not found: {img_path}")
-            return None
-        
-        temp_screenshot = os.path.join(self.script_dir, "temp_exists_check.png")
-        
-        # Get current screenshot
-        screenshot_base64 = self.get_screenshot_base64()
-        if not screenshot_base64:
-            print("Failed to get screenshot")
-            return None
-            
-        # Save screenshot temporarily
-        if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
-            print("Failed to save screenshot")
-            return None
-        
-        # Match template
-        match_result = self.match_image(temp_screenshot, img_path, threshold)
-        
-        # Clean up temp file
-        try:
-            os.remove(temp_screenshot)
-        except:
-            pass
-        
-        if match_result and match_result['confidence'] >= threshold:
-            print(f"Element {img_name} exists with confidence {match_result['confidence']:.2f}")
-            return match_result
-        else:
-            print(f"Element {img_name} not found")
-            return None
+        """Check if an element exists on screen - delegates to ImgHandle"""
+        img_dir = os.path.join(self.script_dir, "img")
+        return self.img_handler.element_exists(img_name, threshold, img_dir)
 
     def random_sleep(self):
         time.sleep(random.randint(1, 3))
@@ -345,9 +184,15 @@ class AutoPhone:
             bool: True if successful, False otherwise
         """
         # Try to wait and click using image matching first
-        if self.wait_and_click(img_name, timeout, threshold):
-            return True
-        
+        while True:
+            if self.wait_and_click(img_name, timeout, threshold):
+                return True
+            
+            exception_solution = self.exceptions_click()
+            if not exception_solution:
+                break
+            
+
         # If image matching fails and clickpos is True, use fallback position
         if clickpos:
             x, y = record_pos
@@ -362,10 +207,10 @@ class AutoPhone:
             self.pos_click(actual_x, actual_y)
             print(f"Clicked at fallback position ({actual_x}, {actual_y}) for {img_name}")
             return True
-        
-        print(f"Failed to click {img_name} and clickpos is False")
-        return False
-    
+        else:
+            print(f"Failed to click {img_name} and clickpos is False")
+           # raise RuntimeError(f"Failed to click {img_name} and clickpos is False")
+
     def into_loginface(self):
         """
         Send SMS by automating the app flow
@@ -417,38 +262,17 @@ class AutoPhone:
             phone_number: Phone number to send SMS to
         """
         
-        """
-        self.random_sleep()
-        
-        if self.element_exists("tpl1766629844196.png"):
-            self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
-        self.random_sleep()
-
-        # Wait for homepage - using aircv approach
-        self.wait_for_image("tpl1768207957769.png", timeout=50) #wait for relogin 
-
-        self._safe_touch("tpl1768207957769.png",record_pos=(0.003, 0.171)) #click login in agian 
-        # if not exists(Template(os.path.join(self.script_dir, r"img/tpl1766630010007.png"), 
-        #                   record_pos=(0.399, 0.844), resolution=(720, 1280))):
-        # self.random_sleep()
-        # self._safe_touch("tpl1766630010007.png", (0.399, 0.844),clickpos=True)  #clcik me to login
-        # self.random_sleep()
-        self.random_sleep()
-        """
         self.Agree_GoHome()
 
         self.random_sleep()
-        self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
-        
+        try:
+            self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
+        except:
+            pass 
+
         self.wait_for_image("tpl1766630010007.png", timeout=50) #wait for login element
-        if self.element_exists("tpl1768207957769.png"):
-            self._safe_touch("tpl1768207957769.png",record_pos=(0.003, 0.171)) #click login in agian 
-            self.random_sleep()
 
-            self._safe_touch("tpl1768442685927.png", record_pos=(0.4, 0.81),clickpos=True)  #clcik me to login
-            self.random_sleep()
-
-        self._safe_touch("tpl1766630007249.png", (-0.374, 0.229), threshold=0.7)    #clcik little circle
+        self._safe_touch("homepagecircle.png", (-0.374, 0.229), threshold=0.7)    #clcik little circle
         self.random_sleep()
         self._safe_touch("tpl1766630010007.png", (-0.062, 0.06))  #clcik homepage login
   
@@ -477,30 +301,9 @@ class AutoPhone:
         # Press back button 7 times to close app
         self.api_adb_shell("am force-stop com.xingin.xhs")
 
-    def exceptions_click(self):
-        try:
-            # Check for gift close icon using aircv
-            if self.element_exists("tpl1766712390329.png", threshold=0.7):
-                self._safe_touch("tpl1766712390329.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-            self.random_sleep()
-            
-            # Check for "Later" button
-            if self.element_exists("tpl1766733358148.png", threshold=0.7):
-                self._safe_touch("tpl1766733358148.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-            self.random_sleep()
-            
-            # Check for biometric authentication
-            if self.element_exists("tpl1766718656239.png", threshold=0.7):
-                self._safe_touch("tpl1766718656239.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-                
-        except Exception as e:
-            if "Verification image detected" in str(e):
-                raise e
-            pass
-
     def send_sms(self, phone_number: str):
         # Input phone number
-        self._safe_touch("tpl1766727477620.png", record_pos=(0.051, -0.375),clickpos=True) #点击 “phone Number”
+        self._safe_touch("tpl1766727477620.png", record_pos=(0.051, -0.375),clickpos=True) #点击 "phone Number"
         self.random_sleep()
         # Use ADB to input text instead of airtest text()
         self.human_type_text(phone_number)
@@ -510,12 +313,7 @@ class AutoPhone:
             pass  # Element exists but not clicked
             
         self.random_sleep()
-        self._safe_touch("tpl1766627887424.png", record_pos=(-0.019, -0.122),clickpos=True) #点击 “login”
-        time.sleep(5)
-        # try:
-        #     self.exceptions_click()
-        # except:
-        #     pass
+        self._safe_touch("FirstLogin.png", record_pos=(-0.019, -0.122),clickpos=True) #点击 "login"
         time.sleep(3)
         print(f"SMS sent to {phone_number}")
         return True
@@ -529,7 +327,7 @@ class AutoPhone:
         if self.element_exists("tpl1766968639367.png", threshold=0.6):
             self._safe_touch("tpl1766968639367.png", record_pos=(0.296, -0.232),clickpos=True)
         else:
-            self._safe_touch("tpl1766728475804.png", record_pos=(0.296, -0.232),clickpos=True)#点击“resend”
+            self._safe_touch("tpl1766728475804.png", record_pos=(0.296, -0.232),clickpos=True)#点击"resend"
         return True
 
     def input_sms(self, sms_code: str):
@@ -619,4 +417,88 @@ class AutoPhone:
             print(f"Error clearing apps and cache: {e}")
             return False
 
+    def pos_swipe(self, start_pos, swipe_vector, duration=300):
+        """
+        Swipe from start position with given vector using ADB
+        
+        Args:
+            start_pos: Tuple (x, y) for starting position
+            swipe_vector: Tuple (dx, dy) for swipe direction and distance
+            duration: Swipe duration in milliseconds (default: 300)
+        """
+        x1, y1 = start_pos
+        dx, dy = swipe_vector
+        x2 = x1 + dx
+        y2 = y1 + dy
+        return self.api_adb_shell(f"input swipe {x1} {y1} {x2} {y2} {duration}")
+
+    def wait_and_swipe(self, img_name, swipe_vector, timeout=50, threshold=0.7, interval=1, duration=300):
+        """
+        Wait for an image to appear and then swipe from it
+        
+        Args:
+            img_name: Image filename in img/ directory
+            swipe_vector: Tuple (dx, dy) for swipe direction and distance
+            timeout: Maximum time to wait in seconds
+            threshold: Matching threshold (0.0-1.0)
+            interval: Check interval in seconds
+            duration: Swipe duration in milliseconds
+            
+        Returns:
+            bool: True if found and swiped, False if timeout
+        """
+        match_result = self.wait_for_image(img_name, timeout, threshold, interval)
+        if match_result:
+            x, y = match_result['result']
+            self.pos_swipe((x, y), swipe_vector, duration)
+            print(f"Swiped from {img_name}")
+            return True
+        return False
     
+    def update_app(self):
+        apk_path = os.path.join(os.path.dirname(self.script_dir), "resources", "xhs9.15.0.apk")
+        cmd = f"adb -s {self.ip}:{self.port} install -r {apk_path}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"App updated successfully on {self.device_addr}")
+            return True
+        else:
+            print(f"Failed to update app: {result.stderr}")
+            return False
+
+    def exceptions_click(self):
+        exception_images = [
+            "tpl1766712390329.png",  # Gift close icon
+            "tpl1766733358148.png",  # Later button
+            "tpl1766718656239.png",  # Biometric authentication
+            "tpl1768207957769.png",  # login in agian exception
+            "tpl1768442685927.png",  #click me 
+            "tryAgian.png",
+            "loginAgain.png",
+            "waitapp.png",
+            "agreeCountinue.png",
+        ]
+        
+        try:
+            for img in exception_images:
+                match_result = self.element_exists(img, threshold=0.7)
+                if match_result:
+                    x, y = match_result['result']
+                    self.pos_click(x, y)
+                    self.random_sleep()
+                    return True
+            
+            # No image matched
+            return False
+            
+        except Exception as e:
+            if "Verification image detected" in str(e):
+                raise e
+            if "unexpected img" in str(e):
+                print("unexpected img")
+                raise e
+            pass
+
+    """
+    swipe(Template(r"tpl1768814239997.png", record_pos=(-0.33, 0.319), resolution=(720, 1280)), vector=[0.7292, 0.0117])
+    """
