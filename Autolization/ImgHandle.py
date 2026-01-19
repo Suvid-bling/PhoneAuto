@@ -177,17 +177,7 @@ class ImgHandle:
         return None
 
     def element_exists(self, img_name, threshold=0.7, img_dir=None):
-        """
-        Check if an element exists on screen immediately without waiting or clicking
-        
-        Args:
-            img_name: Image filename in img/ directory
-            threshold: Matching threshold (0.0-1.0)
-            img_dir: Custom image directory path (optional)
-            
-        Returns:
-            dict: Match result if found, None if not found
-        """
+
         if img_dir:
             img_path = os.path.join(img_dir, img_name)
         else:

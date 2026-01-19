@@ -184,9 +184,15 @@ class AutoPhone:
             bool: True if successful, False otherwise
         """
         # Try to wait and click using image matching first
-        if self.wait_and_click(img_name, timeout, threshold):
-            return True
-        
+        while True:
+            if self.wait_and_click(img_name, timeout, threshold):
+                return True
+            
+            exception_solution = self.exceptions_click()
+            if not exception_solution:
+                break
+            
+
         # If image matching fails and clickpos is True, use fallback position
         if clickpos:
             x, y = record_pos
@@ -201,9 +207,9 @@ class AutoPhone:
             self.pos_click(actual_x, actual_y)
             print(f"Clicked at fallback position ({actual_x}, {actual_y}) for {img_name}")
             return True
-        
-        print(f"Failed to click {img_name} and clickpos is False")
-        return False
+        else:
+            print(f"Failed to click {img_name} and clickpos is False")
+           # raise RuntimeError(f"Failed to click {img_name} and clickpos is False")
 
     def into_loginface(self):
         """
@@ -256,38 +262,17 @@ class AutoPhone:
             phone_number: Phone number to send SMS to
         """
         
-        """
-        self.random_sleep()
-        
-        if self.element_exists("tpl1766629844196.png"):
-            self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
-        self.random_sleep()
-
-        # Wait for homepage - using aircv approach
-        self.wait_for_image("tpl1768207957769.png", timeout=50) #wait for relogin 
-
-        self._safe_touch("tpl1768207957769.png",record_pos=(0.003, 0.171)) #click login in agian 
-        # if not exists(Template(os.path.join(self.script_dir, r"img/tpl1766630010007.png"), 
-        #                   record_pos=(0.399, 0.844), resolution=(720, 1280))):
-        # self.random_sleep()
-        # self._safe_touch("tpl1766630010007.png", (0.399, 0.844),clickpos=True)  #clcik me to login
-        # self.random_sleep()
-        self.random_sleep()
-        """
         self.Agree_GoHome()
 
         self.random_sleep()
-        self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
-        
+        try:
+            self._safe_touch("tpl1766629844196.png",record_pos=(-0.386, 0.317)) #start Icon 
+        except:
+            pass 
+
         self.wait_for_image("tpl1766630010007.png", timeout=50) #wait for login element
-        if self.element_exists("tpl1768207957769.png"):
-            self._safe_touch("tpl1768207957769.png",record_pos=(0.003, 0.171)) #click login in agian 
-            self.random_sleep()
 
-            self._safe_touch("tpl1768442685927.png", record_pos=(0.4, 0.81),clickpos=True)  #clcik me to login
-            self.random_sleep()
-
-        self._safe_touch("tpl1766630007249.png", (-0.374, 0.229), threshold=0.7)    #clcik little circle
+        self._safe_touch("homepagecircle.png", (-0.374, 0.229), threshold=0.7)    #clcik little circle
         self.random_sleep()
         self._safe_touch("tpl1766630010007.png", (-0.062, 0.06))  #clcik homepage login
   
@@ -316,27 +301,6 @@ class AutoPhone:
         # Press back button 7 times to close app
         self.api_adb_shell("am force-stop com.xingin.xhs")
 
-    def exceptions_click(self):
-        try:
-            # Check for gift close icon using aircv
-            if self.element_exists("tpl1766712390329.png", threshold=0.7):
-                self._safe_touch("tpl1766712390329.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-            self.random_sleep()
-            
-            # Check for "Later" button
-            if self.element_exists("tpl1766733358148.png", threshold=0.7):
-                self._safe_touch("tpl1766733358148.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-            self.random_sleep()
-            
-            # Check for biometric authentication
-            if self.element_exists("tpl1766718656239.png", threshold=0.7):
-                self._safe_touch("tpl1766718656239.png", record_pos=(0, 0), threshold=0.7, timeout=2)
-                
-        except Exception as e:
-            if "Verification image detected" in str(e):
-                raise e
-            pass
-
     def send_sms(self, phone_number: str):
         # Input phone number
         self._safe_touch("tpl1766727477620.png", record_pos=(0.051, -0.375),clickpos=True) #点击 "phone Number"
@@ -349,12 +313,7 @@ class AutoPhone:
             pass  # Element exists but not clicked
             
         self.random_sleep()
-        self._safe_touch("tpl1766627887424.png", record_pos=(-0.019, -0.122),clickpos=True) #点击 "login"
-        time.sleep(5)
-        # try:
-        #     self.exceptions_click()
-        # except:
-        #     pass
+        self._safe_touch("FirstLogin.png", record_pos=(-0.019, -0.122),clickpos=True) #点击 "login"
         time.sleep(3)
         print(f"SMS sent to {phone_number}")
         return True
@@ -496,3 +455,50 @@ class AutoPhone:
             return True
         return False
     
+    def update_app(self):
+        apk_path = os.path.join(os.path.dirname(self.script_dir), "resources", "xhs9.15.0.apk")
+        cmd = f"adb -s {self.ip}:{self.port} install -r {apk_path}"
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"App updated successfully on {self.device_addr}")
+            return True
+        else:
+            print(f"Failed to update app: {result.stderr}")
+            return False
+
+    def exceptions_click(self):
+        exception_images = [
+            "tpl1766712390329.png",  # Gift close icon
+            "tpl1766733358148.png",  # Later button
+            "tpl1766718656239.png",  # Biometric authentication
+            "tpl1768207957769.png",  # login in agian exception
+            "tpl1768442685927.png",  #click me 
+            "tryAgian.png",
+            "loginAgain.png",
+            "waitapp.png",
+            "agreeCountinue.png",
+        ]
+        
+        try:
+            for img in exception_images:
+                match_result = self.element_exists(img, threshold=0.7)
+                if match_result:
+                    x, y = match_result['result']
+                    self.pos_click(x, y)
+                    self.random_sleep()
+                    return True
+            
+            # No image matched
+            return False
+            
+        except Exception as e:
+            if "Verification image detected" in str(e):
+                raise e
+            if "unexpected img" in str(e):
+                print("unexpected img")
+                raise e
+            pass
+
+    """
+    swipe(Template(r"tpl1768814239997.png", record_pos=(-0.33, 0.319), resolution=(720, 1280)), vector=[0.7292, 0.0117])
+    """

@@ -4,7 +4,7 @@ import os
 #from Autolization.ImgHandle import ImgHandle
 # www.jfbym.com  注册后登录去用户中心
 
-img_path = os.path.join(os.path.dirname(__file__), 'img', 'capchatest_2.png')
+img_path = os.path.join(os.path.dirname(__file__), 'img', 'capcha_5.png')
 with open(img_path, 'rb') as f:
     b = base64.b64encode(f.read()).decode()  ## 图片二进制流base64字符串
 

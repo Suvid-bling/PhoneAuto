@@ -18,6 +18,14 @@ def start_lamda(index:int,phone:str):
     response = requests.post(url, json=data)
     print(f"start_lamda T100{index}-{phone} >>>>{response.text}")
 
+def batch_changeLogin_state(config:dict):
+    info_list = config['info_list']    
+    
+    for phone, index, _, _ in info_list:
+        #start_lamda(index, phone) AVOID START LAMDAT IF IN RELOGIN TASK
+        device_name = f"T100{index}-{phone}"
+        change_login_state([device_name])
+
 if __name__ == "__main__":
 
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
@@ -29,7 +37,11 @@ if __name__ == "__main__":
     ip = config['ip']
     info_list = config['info_list']
     
+    """
     for phone, index, _, _ in info_list:
         #start_lamda(index, phone) AVOID START LAMDAT IF IN RELOGIN TASK
         device_name = f"T100{index}-{phone}"
         change_login_state([device_name])
+    """
+
+    batch_changeLogin_state(config)
