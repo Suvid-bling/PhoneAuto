@@ -1,6 +1,6 @@
 ### Prompt for Extracting Logout Account Info
 
-**Adjust info_list in setting.py:**
+**Adjust info_pool in config.json:**
 
 1. **Update the list format**
    - Example: `"T1008-4508371212"` maps to `["4508371212", 8, "", ""]`

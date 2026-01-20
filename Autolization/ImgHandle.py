@@ -45,6 +45,10 @@ class ImgHandle:
                 base64_data = base64_data[comma_index + 1:]
         
         try:
+            # Ensure output_path is properly encoded for Windows
+            if isinstance(output_path, str):
+                output_path = os.path.normpath(output_path)
+            
             image_data = base64.b64decode(base64_data)
             with open(output_path, 'wb') as f:
                 f.write(image_data)
@@ -110,6 +114,56 @@ class ImgHandle:
         # 保存结果图像
         img.save(output_path)
         print(f"匹配结果已保存至 {output_path}")
+
+    def rectangle_snap(self, x1, y1, x2, y2, output_path="capcha_template.png"):
+        """
+        截取屏幕指定矩形区域并保存为模板文件
+        
+        参数:
+        x1, y1: 左上角坐标
+        x2, y2: 右下角坐标
+        output_path: 输出图像路径
+        
+        返回:
+        bool: 成功返回True，失败返回False
+        """
+        import tempfile
+        
+        # 获取当前屏幕截图
+        screenshot_base64 = self.get_screenshot_base64()
+        if not screenshot_base64:
+            print("获取截图失败")
+            return False
+        
+        # 保存临时截图
+        temp_screenshot = os.path.join(tempfile.gettempdir(), "temp_full_screenshot.png")
+        if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
+            print("保存截图失败")
+            return False
+        
+        # 打开图像并裁剪
+        img = Image.open(temp_screenshot)
+        
+        # 确保坐标顺序正确
+        left = min(x1, x2)
+        right = max(x1, x2)
+        top = min(y1, y2)
+        bottom = max(y1, y2)
+        
+        # 裁剪矩形区域
+        cropped_img = img.crop((left, top, right, bottom))
+        
+        # 保存裁剪后的图像
+        cropped_img.save(output_path)
+        
+        # 清理临时文件
+        try:
+            os.remove(temp_screenshot)
+        except:
+            pass
+        
+        print(f"已截取区域 ({left},{top})-({right},{bottom}) 并保存至 {output_path}")
+        return True
 
     def wait_for_image(self, img_name, timeout=50, threshold=0.7, interval=1, img_dir=None):
         """

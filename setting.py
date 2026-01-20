@@ -1,24 +1,6 @@
-info_pools = [
-    ["4376663538", 1, "", ""], #[_phonenumber,_index,_sendUrl,_verifiedUrl]
-    ["5797683178", 1, "", ""],
-    ["6134686749", 2, "", ""],
-    ["4508371242", 3, "", ""],
-    ["5797683243", 3, "", ""],
-    ["5797683260", 4, "", ""],
-    ["6134687707", 4, "", ""],
-    ["5797683288", 5, "", ""],
-    ["6134687224", 5, "", ""],
-    ["6134687710", 5, "", ""],
-    ["5797683304", 6, "", ""],
-    ["6134687286", 7, "", ""],
-    ["6134687791", 7, "", ""],
-    ["4385542111", 8, "", ""],
-    ["5797683331", 8, "", ""]
 
 
-  ]
-
-def group_pools(info_pools=info_pools):
+def group_pools(info_pools:dict):
     #Group items by their index (second element)
     from collections import defaultdict
     
@@ -32,15 +14,13 @@ def group_pools(info_pools=info_pools):
     return group_list
 
 #The Goal is slice pool but avoid select same index list in one slice
-def batch_slice(batch_size=4):
+def batch_slice(groups:list, batch_size=4):
     """
     Select items from different groups to avoid same index in one batch.
     Each batch contains batch_size items from different groups.
     """ 
     import random
     
-    # Get grouped pools
-    groups = group_pools()
     # Create a copy to modify
     groups_copy = [group[:] for group in groups]
     
@@ -89,4 +69,83 @@ def write_configs(key:str,value:str):
         return True
     except Exception as e:
         print(f"Error writing config: {e}")
+        return False
+
+def append_configs(key:str,value):
+    """
+    Open config.json, append value to the specified key (assumes key is a list), and save.
+    """
+    import json
+    
+    try:
+        # Read existing config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Append to the key (assumes it's a list)
+        if key not in config:
+            config[key] = []
+        config[key].append(value)
+        
+        # Write back to file
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return True
+    except Exception as e:
+        print(f"Error appending config: {e}")
+        return False
+
+def append_configs(key:str,value):
+    """
+    Open config.json, append value to the specified key (assumes key is a list), and save.
+    """
+    import json
+    
+    try:
+        # Read existing config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Append to the key (assumes it's a list)
+        if key not in config:
+            config[key] = []
+        config[key].append(value)
+        
+        # Write back to file
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return True
+    except Exception as e:
+        print(f"Error appending config: {e}")
+        return False
+
+def clear_configs(key:str):
+    """
+    Open config.json, clear the value of the specified key (set to empty list or empty string), and save.
+    """
+    import json
+    
+    try:
+        # Read existing config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Clear the key value
+        if key in config:
+            if isinstance(config[key], list):
+                config[key] = []
+            elif isinstance(config[key], dict):
+                config[key] = {}
+            else:
+                config[key] = ""
+        
+        # Write back to file
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return True
+    except Exception as e:
+        print(f"Error clearing config: {e}")
         return False

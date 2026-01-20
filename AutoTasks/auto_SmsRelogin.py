@@ -1,10 +1,15 @@
 import sys
 import os
+from concurrent.futures import ThreadPoolExecutor
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from MachineManage.stop_machine import *
 from MachineManage.start_machine import *
 from setting import *
 from AccountManage.prologin_initial import *
+from SMSLogin.SmsRelogin import *
+from AccountManage.test_account import *
+import time
 
 def load_config():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,21 +17,38 @@ def load_config():
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-if __name__ == "__main__":
+def process_batch_relogin(batch):
+    """Process a batch of devices for SMS relogin"""
+    write_configs("info_list", batch)
+    config = load_config()
     
-    print(group_pools())
-    batch_quene = batch_slice()
+    # Initialize the Machine
+    stop_batch(config)
+    start_batch(config)
+    time.sleep(60)
+
+    # SmsRelogin with Multiple Threads
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        executor.map(relogin_process, config["info_list"])
+
+    # Update the Account Login state if login Success
+    batch_changeLogin_state(config)
+    
+    # Update Accountlist in server
+    update_accountlist(batch, config["ip"])
+    time.sleep(120)
+    failure_account = update_accountlist(batch, config["ip"])
+    clear_configs("failure_list")
+    append_configs("failure_list", failure_account)
+
+
+if __name__ == "__main__":
+    config = load_config()
+    groups = group_pools(config["info_pool"])
+    batch_quene = batch_slice(groups)
+    #clear_configs("info_pool")
     
     for batch in batch_quene:
-        write_configs("info_list", batch)
-        config = load_config()
-        """Initialize the Machine"""
-        stop_batch(config)
-        start_batch(config)
-        time.sleep(50)
-
-        """SmsRelogin with Multiple Threads"""
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            executor.map(login_process, config["info_list"])
-
-        """update the Account info if login Sucess"""
+        process_batch_relogin(batch)
+        process_batch_relogin(config["failure_list"]) #Retry agian for failure account  
+        stop_batch(config)  #stop Current Machine 
