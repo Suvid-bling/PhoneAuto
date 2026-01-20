@@ -11,7 +11,7 @@ import time
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Autolization.ImgHandle import ImgHandle
-
+from Autolization.SovleCaptch import *
 
 class AutoPhone:
     def __init__(self, ip: str, port: str, host: str = "", name: str = "", auto_connect: bool = True):
@@ -208,7 +208,7 @@ class AutoPhone:
             print(f"Clicked at fallback position ({actual_x}, {actual_y}) for {img_name}")
             return True
         else:
-            print(f"Failed to click {img_name} and clickpos is False")
+            print(f"\033[91mFailed to click {img_name} and clickpos is False\033[0m")
            # raise RuntimeError(f"Failed to click {img_name} and clickpos is False")
 
     def into_loginface(self):
@@ -270,7 +270,7 @@ class AutoPhone:
         except:
             pass 
 
-        self.wait_for_image("tpl1766630010007.png", timeout=50) #wait for login element
+        self.wait_for_image("tpl1766630010007.png", timeout=30) #wait for login element
 
         self._safe_touch("homepagecircle.png", (-0.374, 0.229), threshold=0.7)    #clcik little circle
         self.random_sleep()
@@ -278,11 +278,11 @@ class AutoPhone:
   
         
         self.random_sleep()
-        self._safe_touch("tpl1766627868831.png", (-0.324, -0.013))  #click second little circle
+        self._safe_touch("tpl1766627868831.png", (-0.324, -0.013),clickpos=True)  #click second little circle
         self.random_sleep()
-        self._safe_touch("tpl1766643959547.png", (-0.29, -0.438))  #clcick +86 to switch country
+        self._safe_touch("tpl1766643959547.png", (-0.29, -0.438),clickpos=True)  #clcick +86 to switch country
         self.random_sleep()
-        self._safe_touch("tpl1766649447388.png", (0.357, -0.426))  #click +1
+        self._safe_touch("tpl1766649447388.png", (0.357, -0.426),clickpos=True)  #click +1
         self.random_sleep()
         return True
  
@@ -477,6 +477,9 @@ class AutoPhone:
             "loginAgain.png",
             "waitapp.png",
             "agreeCountinue.png",
+            "SmsLogin.png",
+            "tpl1766968639367.png",
+            "tpl1766728475804.png",
         ]
         
         try:
@@ -499,6 +502,69 @@ class AutoPhone:
                 raise e
             pass
 
-    """
-    swipe(Template(r"tpl1768814239997.png", record_pos=(-0.33, 0.319), resolution=(720, 1280)), vector=[0.7292, 0.0117])
-    """
+    def check_loginState(self):
+        if element_exists("loggedOut.png"):
+            print("been Logined out")
+            return False
+        else:
+            return Ture
+
+    def snap_capcha(self, output_path="captcha_template.png"):
+        return self.img_handler.rectangle_snap(82, 295, 637, 824, output_path)
+
+    def swipe_fullcapcha(self, hold_time=3):
+        # Wait for the arrow image
+        match_result = self.wait_for_image("myt_arrow.png", timeout=50, threshold=0.7)
+        if not match_result:
+            return False
+        start_x, start_y = match_result['result']
+        
+        self.multi_direction_swipe(start_x, start_y, duration=10, hold_time=2)
+        
+        print(f"Dragged and held arrow for {hold_time}s")
+        return True
+
+    def multi_direction_swipe(self, x, y, duration=None, hold_time=0.3):
+        """
+        Perform multi-directional swipe in one continuous drag
+        
+        Args:
+            x, y: Starting coordinates
+            duration: Total duration for the entire swipe in seconds (if specified, overrides hold_time)
+            hold_time: Time between each point in seconds (used if duration is None)
+        """
+        from Autolization.SovleCaptch import get_capcahSolution
+        import time
+        
+        # Calculate delay based on duration or hold_time
+        if duration is not None:
+            # Distribute total duration across the two moves
+            delay = duration / 2
+        else:
+            delay = hold_time
+        
+        # Touch down at first point
+        self.api_adb_shell(f"input motionevent DOWN {x} {y}")
+        time.sleep(delay)
+        
+        # Move to right position
+        self.api_adb_shell(f"input motionevent MOVE {x+550} {y}")
+        time.sleep(delay)
+        self.snap_capcha()
+        # Get captcha solution and adjust position
+        capcha_distance = get_capcahSolution()
+        
+        if capcha_distance is None:
+            print("Failed to get captcha solution, using default distance")
+            capcha_distance = 0
+        
+        # Swipe to correct captcha location
+        self.api_adb_shell(f"input motionevent MOVE {int(capcha_distance)} {y}")
+        time.sleep(delay)
+
+        # Release at last point
+        self.api_adb_shell(f"input motionevent UP {x} {y}")
+        
+        return True
+
+

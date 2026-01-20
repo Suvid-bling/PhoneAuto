@@ -15,8 +15,7 @@ def start_docker(index: int, phone: str, config):
     response = requests.get(url)
     print(f"run_docker T100{index}-{phone} >>>>{response.text}")
 
-def main():
-    config = load_config()
+def start_batch(config:dict):
     info_list = config["info_list"]
     
     for device_info in info_list:
@@ -24,4 +23,5 @@ def main():
         start_docker(index, phone, config)
 
 if __name__ == "__main__":
-    main()
+    config = load_config()
+    start_batch(config)

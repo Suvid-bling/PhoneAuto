@@ -3,7 +3,7 @@ import sys
 
 # Add parent directory to path FIRST
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from setting import *
 import base64
 import json
 import time
@@ -13,8 +13,8 @@ from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 import random
 import threading
-
 from Autolization.AutoOperate import AutoPhone
+from Autolization.SovleCaptch import *
 
 # Load config
 config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
@@ -85,7 +85,7 @@ def get_SmsUrl(phone_number: str, file_path: str = "active_phonenumber.txt") -> 
             raise e
         raise ValueError(f"Error parsing data in {file_path}: {e}")
 
-def login_process(device_info: list):
+def relogin_process(device_info: list):
     """Process login for a single device
     Args:
         device_info: List in format [phone_number, index, "", ""] matching info_list format
@@ -120,7 +120,15 @@ def login_process(device_info: list):
 
         print(f"[{phone_number}] 获取到验证码: {code}")
         time.sleep(5)
-        phone.input_sms(code)   
+        phone.input_sms(code)
+        time.sleep(10)
+        phone.exceptions_click() #handle the exception after input SmsCode
+        phone.exceptions_click() #handle the exception after input SmsCode
+        time.sleep(10)
+        if phone.check_loginState():
+            append_configs("success_list",device_info)
+        else:
+            write_configs
         phone._disconnect_device()
     except Exception as e:
         print(f"Error in login_process for {device_info[0]}: {e}")
@@ -128,13 +136,23 @@ def login_process(device_info: list):
 
 
 if __name__ == '__main__':
-    from concurrent.futures import ThreadPoolExecutor
-    manual_mode = False
-    if manual_mode:
-        for device_info in config["info_list"]:
-            login_process(device_info)
-    else:
-        # Use threading to process multiple devices in parallel
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            executor.map(login_process, config["info_list"])
-    
+        phone = AutoPhone(
+        ip=config["ip"], 
+        port=f"5008",
+        host=config["host_local"],
+        name=f"T1008-7533333766",
+        auto_connect=False
+    )
+
+        phone.swipe_fullcapcha()
+       # print(get_capcahSolution())
+#     return
+    # from concurrent.futures import ThreadPoolExecutor
+    # manual_mode = False
+    # if manual_mode:
+    #     for device_info in config["info_list"]:
+    #         login_process(device_info)
+    # else:
+    #     # Use threading to process multiple devices in parallel
+    #     with ThreadPoolExecutor(max_workers=4) as executor:
+    #         executor.map(relogin_process, config["info_list"])

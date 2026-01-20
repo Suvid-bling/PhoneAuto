@@ -46,7 +46,7 @@ def start_lamda(index: int, phone: str):
     response = requests.post(url, json=data)
     print(f"start_lamda T100{index}-{phone} >>>>{response.text}")
 
-def update_accountlist(info_list: list, ip: str) -> dict:
+def update_accountlist(info_list: list, ip: str) -> list:
     headers = {"Content-Type": "application/json"}
     data = {
         "host": host_rpc,
@@ -59,23 +59,28 @@ def update_accountlist(info_list: list, ip: str) -> dict:
         
         result = response.json()
         device_statuses = {}
+        logout_devices = []
         
         if result.get("code") == 0 and "data" in result:
             # 将响应数据转换为字典
             for entry in result["data"]:
                 device_statuses.update(entry)
             
-            # 打印所有设备状态
+            # 打印所有设备状态并收集需要重新登录的设备
             for phone, index, _, _ in info_list:
                 device_name = f"T100{index}-{phone}"
                 status = device_statuses.get(device_name, "未找到")
                 print(f"{device_name}: {status}")
+                
+                # 检查是否包含退出登录的描述
+                if "-100 账号退出登录,请删除或者重新登陆" in status:
+                    logout_devices.append([phone, index, "", ""])
         
-        return device_statuses
+        return logout_devices
         
     except (requests.RequestException, json.JSONDecodeError, KeyError) as e:
         print(f"Error updating account list: {e}")
-        return {}
+        return []
 def test_account():
     """Test account status for each phone number in the config"""
     print(f"Testing accounts for IP: {ip}")

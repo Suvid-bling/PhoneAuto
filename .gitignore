@@ -1,18 +1,29 @@
-# Virtual Environment
-.phoneautoEnv/
+# Resources folder
+resources/
 
-# Large resource files
-resources/lamda-server-arm64-v8a.tar.gz
-resources/xhs9.15.0.apk
-resources/frp_0.65.0_linux_arm64.tar.gz
-resources/busybox-arm64-v8a
-
-# Python cache
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.phoneautoEnv/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+develop_log.txt
