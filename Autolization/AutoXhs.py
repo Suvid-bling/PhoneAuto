@@ -12,6 +12,13 @@ from Autolization.xhs_exceptEvents import ExceptionHandler
 class XhsAutomation:
     """Xiaohongshu (XHS) app-specific automation methods"""
     
+    # Image constants
+    START_ICON_IMG = "tpl1766629844196.png"
+    LOGIN_ELEMENT_IMG = "tpl1766630010007.png"
+    SECOND_CIRCLE_IMG = "tpl1766627868831.png"
+    COUNTRY_CODE_86_IMG = "tpl1766643959547.png"
+    COUNTRY_CODE_1_IMG = "tpl1766649447388.png"
+    
     def __init__(self, auto_phone):
         """
         Initialize XhsAutomation
@@ -67,10 +74,10 @@ class XhsAutomation:
             self.auto_phone.pos_click(actual_x, actual_y)
             print(f"Clicked at fallback position ({actual_x}, {actual_y}) for {img_name}")
             return True
-        else:
-            error_msg = f"Failed to click {img_name} and clickpos is False"
-            print(f"\033[91m\033[1m{'=' * 80}\n{error_msg.center(80)}\n{'=' * 80}\033[0m")
-            raise RuntimeError(error_msg)
+        
+        error_msg = f"Failed to click {img_name} and clickpos is False"
+        print(f"\033[91m\033[1m{'=' * 80}\n{error_msg.center(80)}\n{'=' * 80}\033[0m")
+        raise RuntimeError(error_msg)
     
     def into_loginface(self):
         """
@@ -81,7 +88,7 @@ class XhsAutomation:
         """
         time.sleep(1)
         self.auto_phone.random_sleep()
-        self.auto_phone.wait_and_click("tpl1766629844196.png", timeout=10, threshold=0.7)  # Wait and click start icon
+        self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=10, threshold=0.7)  # Wait and click start icon
         self.auto_phone.random_sleep()
 
         self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
@@ -90,7 +97,7 @@ class XhsAutomation:
         self.auto_phone.wait_for_image("tpl1766713067778.png", timeout=50)
 
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766630010007.png", (0.399, 0.844), clickpos=True)  # click me to login
+        self._safe_touch(self.LOGIN_ELEMENT_IMG, (0.399, 0.844), clickpos=True)  # click me to login
         self.auto_phone.random_sleep()
         time.sleep(2)
 
@@ -100,13 +107,13 @@ class XhsAutomation:
         self.auto_phone.random_sleep()
         self._safe_touch("tpl1766630007249.png", (-0.374, 0.229), threshold=0.5)  # click little circle
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766630010007.png", (-0.062, 0.06))  # click homepage login
+        self._safe_touch(self.LOGIN_ELEMENT_IMG, (-0.062, 0.06))  # click homepage login
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766627868831.png", (-0.324, -0.013))  # click second little circle
+        self._safe_touch(self.SECOND_CIRCLE_IMG, (-0.324, -0.013))  # click second little circle
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766643959547.png", (-0.29, -0.438))  # click +86 to switch country
+        self._safe_touch(self.COUNTRY_CODE_86_IMG, (-0.29, -0.438))  # click +86 to switch country
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766649447388.png", (0.357, -0.426))  # click +1
+        self._safe_touch(self.COUNTRY_CODE_1_IMG, (0.357, -0.426))  # click +1
         self.auto_phone.random_sleep()
         return True
     
@@ -120,16 +127,15 @@ class XhsAutomation:
         self.agree_go_home()
 
         self.auto_phone.random_sleep()
-        try:
-            self.auto_phone.wait_and_click("tpl1766629844196.png", timeout=10, threshold=0.7)  # Wait and click start icon
-        except:
-            pass 
+    
+        self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=10, threshold=0.7)  # Wait and click start icon
+    
 
-        self.auto_phone.wait_for_image("tpl1766630010007.png", timeout=30)  # wait for login element
+        self.auto_phone.wait_for_image(self.LOGIN_ELEMENT_IMG, timeout=30)  # wait for login element
 
         self._safe_touch("homepagecircle.png", (-0.374, 0.229), threshold=0.7)  # click little circle
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766630010007.png", (-0.062, 0.06))  # click homepage login
+        self._safe_touch(self.LOGIN_ELEMENT_IMG, (-0.062, 0.06))  # click homepage login
         
         self.auto_phone.random_sleep()
 
@@ -140,7 +146,7 @@ class XhsAutomation:
         Accept agreements and return to home screen
         """
         self.auto_phone.random_sleep()
-        self.auto_phone.wait_and_click("tpl1766629844196.png", timeout=5, threshold=0.7)  # Wait and click start icon
+        self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=5, threshold=0.7)  # Wait and click start icon
         self.auto_phone.random_sleep()
         time.sleep(1)
         self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
@@ -151,11 +157,11 @@ class XhsAutomation:
         self.auto_phone.api_adb_shell("am force-stop com.xingin.xhs")
 
     def send_sms(self, phone_number: str):
-        self._safe_touch("tpl1766627868831.png", (-0.324, -0.013), clickpos=True)  # click second little circle
+        self._safe_touch(self.SECOND_CIRCLE_IMG, (-0.324, -0.013), clickpos=True)  # click second little circle
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766643959547.png", (-0.29, -0.438), clickpos=True)  # click +86 to switch country
+        self._safe_touch(self.COUNTRY_CODE_86_IMG, (-0.29, -0.438), clickpos=True)  # click +86 to switch country
         self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766649447388.png", (0.357, -0.426), clickpos=True)  # click +1
+        self._safe_touch(self.COUNTRY_CODE_1_IMG, (0.357, -0.426), clickpos=True)  # click +1
         # Input phone number
         self._safe_touch("tpl1766727477620.png", record_pos=(0.051, -0.375), clickpos=True)  # click "phone Number"
         self.auto_phone.random_sleep()
@@ -168,7 +174,14 @@ class XhsAutomation:
             
         self.auto_phone.random_sleep()
         self._safe_touch("FirstLogin.png", record_pos=(-0.019, -0.122), clickpos=True)  # click "login"
-        time.sleep(12)                 
+        
+        time.sleep(2)
+        for _ in range(60):
+            if self.auto_phone.element_exists(COUNTRY_CODE_1_IMG):
+                break
+            self.exceptions_click()
+            time.sleep(1)
+        
         self.exceptions_click()
         print(f"SMS sent to {phone_number}")
         return True
@@ -233,13 +246,13 @@ class XhsAutomation:
                 break
             self.exceptions_click()
             time.sleep(1)
-        
-        time.sleep(10)       
+       
+            
         if self.auto_phone.element_exists("loggedOut.png"):
             print("been Logined out")
             return False
-        else:
-            return True
+        
+        return True
     
     def snap_capcha(self, output_path="captcha_template.png"):
         """Capture captcha area from screen"""
@@ -313,21 +326,3 @@ class XhsAutomation:
         
         return True
 
-    def check_loginState(self):
-        """
-        Check if user is logged in by detecting UI elements.
-        Returns True if logged in (YellowOpus.png and LoveIcon.png found)
-        Returns False if logged out (loggedOut.png found)
-        """
-        time.sleep(10)
-        
-        # Check for logged out state first
-        if self.auto_phone.element_exists("loggedOut.png", threshold=0.7):
-            print("Detected logged out state")
-            return False
-        else:
-            return True
-        
-        # If neither state is clearly detected, assume logged out
-        print("Login state unclear, assuming logged out")
-        return False

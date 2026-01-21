@@ -131,11 +131,10 @@ def relogin_process(device_info: list):
                     break
 
         print(f"[{phone_number}] 获取到验证码: {code}")
-        time.sleep(5)
+        time.sleep(5) #assum as human type 
         xhs.input_sms(code)
         time.sleep(10)
 
-        xhs.check_loginState()
         if not xhs.check_loginState():
             append_configs("failure_list",device_info)
         
