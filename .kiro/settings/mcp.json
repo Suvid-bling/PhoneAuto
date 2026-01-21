@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "mcpServers": {
     "sonarqube": {
@@ -10,3 +11,17 @@
     }
   }
 }
+=======
+{
+  "mcpServers": {
+    "sonarqube": {
+      "command": "npx",
+      "args": ["sonarqube-mcp-server"],
+      "env": {
+        "SONARQUBE_URL": "https://sonarcloud.io",
+        "SONARQUBE_TOKEN": "19eed4eea873c7188439589cd561315455de5d7a"
+      }
+    }
+  }
+}
+>>>>>>> 0acfad9f91da1658358c489639c1240bf227c4a5
