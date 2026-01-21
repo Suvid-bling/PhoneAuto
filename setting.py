@@ -56,15 +56,15 @@ def write_configs(key:str,value:str):
     
     try:
         # Read existing config
-        with open('config.json', 'r') as f:
+        with open('config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         # Update the key
         config[key] = value
         
-        # Write back to file
-        with open('config.json', 'w') as f:
-            json.dump(config, f, indent=2)
+        # Write back to file with custom formatting
+        with open('config.json', 'w', encoding='utf-8') as f:
+            _write_formatted_json(config, f)
         
         return True
     except Exception as e:
@@ -79,7 +79,7 @@ def append_configs(key:str,value):
     
     try:
         # Read existing config
-        with open('config.json', 'r') as f:
+        with open('config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         # Append to the key (assumes it's a list)
@@ -87,34 +87,9 @@ def append_configs(key:str,value):
             config[key] = []
         config[key].append(value)
         
-        # Write back to file
-        with open('config.json', 'w') as f:
-            json.dump(config, f, indent=2)
-        
-        return True
-    except Exception as e:
-        print(f"Error appending config: {e}")
-        return False
-
-def append_configs(key:str,value):
-    """
-    Open config.json, append value to the specified key (assumes key is a list), and save.
-    """
-    import json
-    
-    try:
-        # Read existing config
-        with open('config.json', 'r') as f:
-            config = json.load(f)
-        
-        # Append to the key (assumes it's a list)
-        if key not in config:
-            config[key] = []
-        config[key].append(value)
-        
-        # Write back to file
-        with open('config.json', 'w') as f:
-            json.dump(config, f, indent=2)
+        # Write back to file with custom formatting
+        with open('config.json', 'w', encoding='utf-8') as f:
+            _write_formatted_json(config, f)
         
         return True
     except Exception as e:
@@ -129,7 +104,7 @@ def clear_configs(key:str):
     
     try:
         # Read existing config
-        with open('config.json', 'r') as f:
+        with open('config.json', 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         # Clear the key value
@@ -141,11 +116,43 @@ def clear_configs(key:str):
             else:
                 config[key] = ""
         
-        # Write back to file
-        with open('config.json', 'w') as f:
-            json.dump(config, f, indent=2)
+        # Write back to file with custom formatting
+        with open('config.json', 'w', encoding='utf-8') as f:
+            _write_formatted_json(config, f)
         
         return True
     except Exception as e:
         print(f"Error clearing config: {e}")
         return False
+
+def _write_formatted_json(config, file):
+    """
+    Write JSON with custom formatting: inner arrays on single lines, outer structure indented.
+    """
+    import json
+    
+    file.write('{\n')
+    keys = list(config.keys())
+    for i, key in enumerate(keys):
+        file.write(f'  "{key}": ')
+        value = config[key]
+        
+        if isinstance(value, list) and value and isinstance(value[0], list):
+            # List of lists - each inner list on one line
+            file.write('[\n')
+            for j, item in enumerate(value):
+                file.write(f'    {json.dumps(item, ensure_ascii=False)}')
+                if j < len(value) - 1:
+                    file.write(',\n')
+                else:
+                    file.write('\n')
+            file.write('  ]')
+        else:
+            # Regular value
+            file.write(json.dumps(value, indent=2, ensure_ascii=False).replace('\n', '\n  '))
+        
+        if i < len(keys) - 1:
+            file.write(',\n')
+        else:
+            file.write('\n')
+    file.write('}\n')

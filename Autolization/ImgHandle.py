@@ -230,6 +230,66 @@ class ImgHandle:
         print(f"Timeout waiting for {img_name} after {timeout} seconds")
         return None
 
+    def wait_imageDisappear(self, img_name, timeout=50, threshold=0.7, interval=1, img_dir=None):
+        """
+        Wait for an image to disappear from screen
+        
+        Args:
+            img_name: Image filename
+            timeout: Maximum time to wait in seconds
+            threshold: Matching threshold (0.0-1.0)
+            interval: Check interval in seconds
+            img_dir: Custom image directory path (optional)
+            
+        Returns:
+            bool: True if image disappeared, False if timeout
+        """
+        if img_dir:
+            img_path = os.path.join(img_dir, img_name)
+        else:
+            img_path = os.path.join(self.script_dir, f"img/{img_name}")
+        
+        if not os.path.exists(img_path):
+            print(f"Template image not found: {img_path}")
+            return True
+        
+        start_time = time.time()
+        temp_screenshot = os.path.join(self.script_dir, "temp_wait_screenshot.png")
+        
+        print(f"Waiting for {img_name} to disappear (timeout: {timeout}s)")
+        
+        while time.time() - start_time < timeout:
+            screenshot_base64 = self.get_screenshot_base64()
+            if not screenshot_base64:
+                time.sleep(interval)
+                continue
+                
+            if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
+                time.sleep(interval)
+                continue
+            
+            match_result = self.match_image(temp_screenshot, img_path, threshold)
+            
+            if not match_result or match_result['confidence'] < threshold:
+                try:
+                    os.remove(temp_screenshot)
+                except:
+                    pass
+                
+                elapsed_time = time.time() - start_time
+                print(f"{img_name} disappeared after {elapsed_time:.1f}s")
+                return True
+            
+            time.sleep(interval)
+        
+        try:
+            os.remove(temp_screenshot)
+        except:
+            pass
+        
+        print(f"Timeout: {img_name} still visible after {timeout}s")
+        return False
+
     def element_exists(self, img_name, threshold=0.7, img_dir=None):
 
         if img_dir:

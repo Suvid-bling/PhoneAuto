@@ -18,6 +18,7 @@ env/
 *.swp
 *.swo
 *~
+.phoneautoEnv/
 
 # OS
 .DS_Store
