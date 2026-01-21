@@ -153,6 +153,11 @@ class AutoPhone:
         img_dir = os.path.join(self.script_dir, "img")
         return self.img_handler.wait_for_image(img_name, timeout, threshold, interval, img_dir)
 
+    def wait_imageDisappear(self, img_name, timeout=50, threshold=0.7, interval=1):
+        """Wait for an image to disappear from screen - delegates to ImgHandle"""
+        img_dir = os.path.join(self.script_dir, "img")
+        return self.img_handler.wait_imageDisappear(img_name, timeout, threshold, interval, img_dir)
+
     def wait_and_click(self, img_name, timeout=50, threshold=0.7, interval=1):
         """
         Wait for an image to appear and then click on it
@@ -284,7 +289,4 @@ class AutoPhone:
             print(f"Swiped from {img_name}")
             return True
         return False
-
-
-
 

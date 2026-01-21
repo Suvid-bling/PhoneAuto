@@ -1,6 +1,6 @@
 import sys
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from MachineManage.stop_machine import *
@@ -27,8 +27,8 @@ def process_batch_relogin(batch):
     start_batch(config)
     time.sleep(60)
 
-    # SmsRelogin with Multiple Threads
-    with ThreadPoolExecutor(max_workers=2) as executor:
+ # SmsRelogin with Multiple Processes
+    with ProcessPoolExecutor(max_workers=2) as executor:
         executor.map(relogin_process, config["info_list"])
 
     # Update the Account Login state if login Success
@@ -47,8 +47,8 @@ if __name__ == "__main__":
     groups = group_pools(config["info_pool"])
     batch_quene = batch_slice(groups)
     #clear_configs("info_pool")
-    
+
     for batch in batch_quene:
         process_batch_relogin(batch)
-        process_batch_relogin(config["failure_list"]) #Retry agian for failure account  
+        #process_batch_relogin(config["failure_list"]) #Retry agian for failure account  
         stop_batch(config)  #stop Current Machine 

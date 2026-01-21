@@ -15,6 +15,7 @@ import random
 import threading
 from Autolization.AutoOperate import AutoPhone
 from Autolization.SovleCaptch import *
+from Autolization.AutoXhs import XhsAutomation
 
 # Load config
 config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
@@ -34,23 +35,32 @@ def wait_for_user_confirmation(phone_number: str):
                 print(f"[{phone_number}] Invalid input. Please enter 'y'")
 
 def call_SmsUrl(sms_url: str):
-    """循环请求短信验证码直到获取到"""
+    """循环请求短信验证码直到获取到，带重试逻辑处理SSL错误"""
     import re
+    from requests.exceptions import SSLError, RequestException
     
     max_attempts = 18
+    max_retries = 3
     
     for attempt in range(max_attempts):
-        response = requests.get(sms_url, timeout=10)
-        data = response.json()
-        print(data)
-        
-        # Search for 6-digit verification code anywhere in the entire JSON response
-        json_str = json.dumps(data)
-        match = re.search(r'\b(\d{6})\b', json_str)
-        if match:
-            code = match.group(1)
-            print(f"获取到验证码: {code}")
-            return code
+        for retry in range(max_retries):
+            try:
+                response = requests.get(sms_url, timeout=10)
+                data = response.json()
+                print(data)
+                
+                json_str = json.dumps(data)
+                match = re.search(r'\b(\d{6})\b', json_str)
+                if match:
+                    print(f"获取到验证码: {match.group(1)}")
+                    return match.group(1)
+                break
+                
+            except (SSLError, RequestException) as e:
+                wait_time = 2 ** (retry + 1)
+                print(f"\033[91m连接错误 (重试 {retry + 1}/{max_retries}): {e}\033[0m")
+                if retry < max_retries - 1:
+                    time.sleep(wait_time)
         
         print(f"尝试 {attempt + 1}/{max_attempts}, 等待验证码...")
         time.sleep(2)
@@ -105,30 +115,30 @@ def relogin_process(device_info: list):
         
         phone._connect_device()
         phone.clear_app_cache("com.xingin.xhs")  # Clear only xiaohongshu cache
-        phone.reinto_loginface()
-        phone.send_sms(phone_number)
+        
+        xhs = XhsAutomation(phone)
+        xhs.reinto_loginface()
+        xhs.send_sms(phone_number)
         "check point for solve verficate img by human's hand"
         #Todo: add am ask process that pause the thread until user input 'y'
-        wait_for_user_confirmation(phone_number)  # Pauses this thread until 'y'
+        #wait_for_user_confirmation(phone_number)  # Pauses this thread until 'y'
         code = call_SmsUrl(sms_url)        
         if not code:
             for retry_count in range(2):
-                phone.resend_sms(phone_number)
+                xhs.resend_sms(phone_number)
                 code = call_SmsUrl(sms_url)
                 if code:
                     break
 
         print(f"[{phone_number}] 获取到验证码: {code}")
         time.sleep(5)
-        phone.input_sms(code)
+        xhs.input_sms(code)
         time.sleep(10)
-        phone.exceptions_click() #handle the exception after input SmsCode
-        phone.exceptions_click() #handle the exception after input SmsCode
-        time.sleep(10)
-        if phone.check_loginState():
-            append_configs("success_list",device_info)
-        else:
-            write_configs
+
+        xhs.check_loginState()
+        if not xhs.check_loginState():
+            append_configs("failure_list",device_info)
+        
         phone._disconnect_device()
     except Exception as e:
         print(f"Error in login_process for {device_info[0]}: {e}")
@@ -136,23 +146,9 @@ def relogin_process(device_info: list):
 
 
 if __name__ == '__main__':
-        phone = AutoPhone(
-        ip=config["ip"], 
-        port=f"5008",
-        host=config["host_local"],
-        name=f"T1008-7533333766",
-        auto_connect=False
-    )
 
-        phone.swipe_fullcapcha()
-       # print(get_capcahSolution())
-#     return
-    # from concurrent.futures import ThreadPoolExecutor
-    # manual_mode = False
-    # if manual_mode:
-    #     for device_info in config["info_list"]:
-    #         login_process(device_info)
-    # else:
-    #     # Use threading to process multiple devices in parallel
-    #     with ThreadPoolExecutor(max_workers=4) as executor:
-    #         executor.map(relogin_process, config["info_list"])
+    from concurrent.futures import ProcessPoolExecutor
+
+    # Use multiprocessing to process multiple devices in parallel
+    with ProcessPoolExecutor(max_workers=3) as executor:
+        executor.map(relogin_process, config["info_list"])
