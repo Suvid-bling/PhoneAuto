@@ -25,7 +25,7 @@ def process_batch_relogin(batch):
     # Initialize the Machine
     stop_batch(config)
     start_batch(config)
-    time.sleep(60)
+    time.sleep(30)
 
  # SmsRelogin with Multiple Processes
     with ProcessPoolExecutor(max_workers=2) as executor:
@@ -38,17 +38,22 @@ def process_batch_relogin(batch):
     update_accountlist(batch, config["ip"])
     time.sleep(120)
     failure_account = update_accountlist(batch, config["ip"])
-    clear_configs("failure_list")
+    #clear_configs("failure_list")
     append_configs("failure_list", failure_account)
-
+    check_loginstate_batch(batch)
+    stop_batch(config)  #stop Current Machine 
 
 if __name__ == "__main__":
     config = load_config()
     groups = group_pools(config["info_pool"])
     batch_quene = batch_slice(groups)
     #clear_configs("info_pool")
+    
+    # Stop all machines first
+    names = get_machine_namelist(config)
+    stop_machines_all(names, config)
+    time.sleep(20)
 
     for batch in batch_quene:
         process_batch_relogin(batch)
         #process_batch_relogin(config["failure_list"]) #Retry agian for failure account  
-        stop_batch(config)  #stop Current Machine 

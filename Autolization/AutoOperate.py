@@ -290,6 +290,3 @@ class AutoPhone:
             return True
         return False
 
-
-
-

@@ -74,6 +74,7 @@ def write_configs(key:str,value:str):
 def append_configs(key:str,value):
     """
     Open config.json, append value to the specified key (assumes key is a list), and save.
+    Only appends if the value doesn't already exist in the list.
     """
     import json
     
@@ -85,7 +86,10 @@ def append_configs(key:str,value):
         # Append to the key (assumes it's a list)
         if key not in config:
             config[key] = []
-        config[key].append(value)
+        
+        # Only append if value doesn't already exist
+        if value not in config[key]:
+            config[key].append(value)
         
         # Write back to file with custom formatting
         with open('config.json', 'w', encoding='utf-8') as f:

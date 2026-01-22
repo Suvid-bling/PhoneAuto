@@ -34,12 +34,47 @@ def wait_for_user_confirmation(phone_number: str):
             else:
                 print(f"[{phone_number}] Invalid input. Please enter 'y'")
 
+def check_loginstate_batch(device_info_list):
+    """Check login state for all devices in the list"""
+    results = {}
+    for device_info in device_info_list:
+        try:
+            phone_number, index = device_info[0], device_info[1]
+            print(f"[{phone_number}] Checking login state...")
+            
+            phone = AutoPhone(
+                ip=config["ip"], 
+                port=f"500{index}",
+                host=config["host_local"],
+                name=f"T100{index}-{phone_number}",
+                auto_connect=False
+            )
+            
+            phone._connect_device()
+            xhs = XhsAutomation(phone)
+            is_logged_in = xhs.check_login()
+            phone._disconnect_device()
+            
+            print(f"[{phone_number}] Login state: {'Logged in' if is_logged_in else 'Logged out'}")
+            results[phone_number] = is_logged_in
+            
+            if not is_logged_in:
+                append_configs("failure_list", device_info)
+                
+        except Exception as e:
+            print(f"Error checking login state for {device_info[0]}: {e}")
+            results[device_info[0]] = False
+            append_configs("failure_list", device_info)
+            
+    return results
+    
+
 def call_SmsUrl(sms_url: str):
     """循环请求短信验证码直到获取到，带重试逻辑处理SSL错误"""
     import re
     from requests.exceptions import SSLError, RequestException
     
-    max_attempts = 18
+    max_attempts = 25
     max_retries = 3
     
     for attempt in range(max_attempts):
@@ -131,24 +166,32 @@ def relogin_process(device_info: list):
                     break
 
         print(f"[{phone_number}] 获取到验证码: {code}")
-        time.sleep(5)
+        time.sleep(5) #assum as human type 
         xhs.input_sms(code)
         time.sleep(10)
 
-        xhs.check_loginState()
-        if not xhs.check_loginState():
-            append_configs("failure_list",device_info)
-        
+        xhs.check_loginState()  
         phone._disconnect_device()
+        return True
+
     except Exception as e:
+        append_configs("failure_list",device_info)
+        return False
         print(f"Error in login_process for {device_info[0]}: {e}")
-        pass
+        
 
 
 if __name__ == '__main__':
 
-    from concurrent.futures import ProcessPoolExecutor
+    # Example 1: Check login state for all devices
+    # results = check_loginstate_batch(config["info_list"])
+    # print("Login state results:", results)
 
-    # Use multiprocessing to process multiple devices in parallel
-    with ProcessPoolExecutor(max_workers=3) as executor:
-        executor.map(relogin_process, config["info_list"])
+    # Example 2: Relogin for all devices in parallel
+    # from concurrent.futures import ProcessPoolExecutor
+
+    # # Use multiprocessing to process multiple devices in parallel
+    # with ProcessPoolExecutor(max_workers=2) as executor:
+    #     executor.map(relogin_process, config["info_list"])
+
+    check_loginstate_batch(config["info_list"])

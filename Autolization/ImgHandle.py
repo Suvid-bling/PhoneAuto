@@ -179,54 +179,19 @@ class ImgHandle:
         Returns:
             dict: Match result if found, None if timeout
         """
-        if img_dir:
-            img_path = os.path.join(img_dir, img_name)
-        else:
-            img_path = os.path.join(self.script_dir, f"img/{img_name}")
-        
-        if not os.path.exists(img_path):
-            print(f"Template image not found: {img_path}")
-            return None
-        
         start_time = time.time()
-        temp_screenshot = os.path.join(self.script_dir, "temp_wait_screenshot.png")
-        
         print(f"Waiting for {img_name} (timeout: {timeout}s, threshold: {threshold})")
         
         while time.time() - start_time < timeout:
-            # Get current screenshot
-            screenshot_base64 = self.get_screenshot_base64()
-            if not screenshot_base64:
-                time.sleep(interval)
-                continue
-                
-            # Save screenshot temporarily
-            if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
-                time.sleep(interval)
-                continue
+            match_result = self.element_exists(img_name, threshold, img_dir)
             
-            # Match template
-            match_result = self.match_image(temp_screenshot, img_path, threshold)
-            
-            if match_result and match_result['confidence'] >= threshold:
-                # Clean up temp file
-                try:
-                    os.remove(temp_screenshot)
-                except:
-                    pass
-                    
+            if match_result:
                 elapsed_time = time.time() - start_time
                 print(f"Found {img_name} after {elapsed_time:.1f}s with confidence {match_result['confidence']:.2f}")
                 return match_result
             
             time.sleep(interval)
         
-        # Clean up temp file
-        try:
-            os.remove(temp_screenshot)
-        except:
-            pass
-            
         print(f"Timeout waiting for {img_name} after {timeout} seconds")
         return None
 
@@ -244,48 +209,18 @@ class ImgHandle:
         Returns:
             bool: True if image disappeared, False if timeout
         """
-        if img_dir:
-            img_path = os.path.join(img_dir, img_name)
-        else:
-            img_path = os.path.join(self.script_dir, f"img/{img_name}")
-        
-        if not os.path.exists(img_path):
-            print(f"Template image not found: {img_path}")
-            return True
-        
         start_time = time.time()
-        temp_screenshot = os.path.join(self.script_dir, "temp_wait_screenshot.png")
-        
         print(f"Waiting for {img_name} to disappear (timeout: {timeout}s)")
         
         while time.time() - start_time < timeout:
-            screenshot_base64 = self.get_screenshot_base64()
-            if not screenshot_base64:
-                time.sleep(interval)
-                continue
-                
-            if not self.save_base64_as_image(screenshot_base64, temp_screenshot):
-                time.sleep(interval)
-                continue
+            match_result = self.element_exists(img_name, threshold, img_dir)
             
-            match_result = self.match_image(temp_screenshot, img_path, threshold)
-            
-            if not match_result or match_result['confidence'] < threshold:
-                try:
-                    os.remove(temp_screenshot)
-                except:
-                    pass
-                
+            if not match_result:
                 elapsed_time = time.time() - start_time
                 print(f"{img_name} disappeared after {elapsed_time:.1f}s")
                 return True
             
             time.sleep(interval)
-        
-        try:
-            os.remove(temp_screenshot)
-        except:
-            pass
         
         print(f"Timeout: {img_name} still visible after {timeout}s")
         return False
