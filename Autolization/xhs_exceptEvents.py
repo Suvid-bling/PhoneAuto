@@ -27,6 +27,7 @@ class ExceptionHandler:
             "tpl1766718656239.png": None,  # Biometric authentication
             "tpl1768207957769.png": None,  # login in again exception
             "tpl1768442685927.png": None,  # click me 
+            "MeAlpha.png": None,  # click me 
             "tryAgian.png": None,
             "loginAgain.png": None,
             "waitapp.png": None,
@@ -34,9 +35,9 @@ class ExceptionHandler:
             "SmsLogin.png": None,
             "tpl1766968639367.png": None,
             "tpl1766728475804.png": None, 
-            "tpl1766630010007.png": None,  # homepage Login
-            "tpl1766643959547.png": None,  # +86
-            "tpl1766649447388.png": None,  # +1
+            #"tpl1766630010007.png": None,  # homepage Login
+            # "tpl1766643959547.png": None,  # +86
+            # "tpl1766649447388.png": None,  # +1
             "myt_arrow.png": self.handle_captcha_arrow
             #Todo Add 
         }
@@ -67,9 +68,17 @@ class ExceptionHandler:
         root.mainloop()
         
         # Wait for captcha arrow to disappear
-        disappeared = self.auto_phone.wait_imageDisappear("myt_arrow.png", timeout=60, interval=1)
-        if not disappeared:
-            print("\033[91mWarning: Captcha arrow did not disappear within timeout\033[0m")
+        #disappeared = self.auto_phone.wait_imageDisappear("myt_arrow.png", timeout=60, interval=1)
+        for _ in range(120):
+            if self.auto_phone.element_exists("myt_arrow.png"):
+                time.sleep(3)
+                continue
+            else:
+                break
+   
+        
+      #  if not disappeared:
+        print("\033[91mWarning: Captcha arrow did not disappear within timeout\033[0m")
         return disappeared 
 
     

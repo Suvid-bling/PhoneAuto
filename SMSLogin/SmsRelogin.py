@@ -34,12 +34,56 @@ def wait_for_user_confirmation(phone_number: str):
             else:
                 print(f"[{phone_number}] Invalid input. Please enter 'y'")
 
+def check_loginstate_batch(ip: str, host_local: str, device_info_list: list):
+    """Check login state for all devices in the list
+    
+    Args:
+        ip: IP address for the devices
+        host_local: Local host address for device connections
+        device_info_list: List of device info [phone_number, index, "", ""]
+    
+    Returns:
+        dict: {phone_number: is_logged_in, ...}
+    """
+    results = {}
+    for device_info in device_info_list:
+        try:
+            phone_number, index = device_info[0], device_info[1]
+            print(f"[{phone_number}] Checking login state...")
+            
+            phone = AutoPhone(
+                ip=ip, 
+                port=f"500{index}",
+                host=host_local,
+                name=f"T100{index}-{phone_number}",
+                auto_connect=False
+            )
+            
+            phone._connect_device()
+            xhs = XhsAutomation(phone)
+            is_logged_in = xhs.check_login()
+            phone._disconnect_device()
+            
+            print(f"[{phone_number}] Login state: {'Logged in' if is_logged_in else 'Logged out'}")
+            results[phone_number] = is_logged_in
+            
+            if not is_logged_in:
+                append_ip_config(ip, "failure_list", device_info)
+                
+        except Exception as e:
+            print(f"Error checking login state for {device_info[0]}: {e}")
+            results[device_info[0]] = False
+            append_ip_config(ip, "failure_list", device_info)
+            
+    return results
+    
+
 def call_SmsUrl(sms_url: str):
     """循环请求短信验证码直到获取到，带重试逻辑处理SSL错误"""
     import re
     from requests.exceptions import SSLError, RequestException
     
-    max_attempts = 18
+    max_attempts = 25
     max_retries = 3
     
     for attempt in range(max_attempts):
@@ -95,10 +139,16 @@ def get_SmsUrl(phone_number: str, file_path: str = "active_phonenumber.txt") -> 
             raise e
         raise ValueError(f"Error parsing data in {file_path}: {e}")
 
-def relogin_process(device_info: list):
+def relogin_process(ip: str, host_local: str, device_info: list):
     """Process login for a single device
+    
     Args:
+        ip: IP address for the device
+        host_local: Local host address for device connection
         device_info: List in format [phone_number, index, "", ""] matching info_list format
+    
+    Returns:
+        bool: True if login successful, False otherwise
     """
     try:
         phone_number, index = device_info[0], device_info[1]
@@ -106,9 +156,9 @@ def relogin_process(device_info: list):
         print(f"[{phone_number}] Starting login...")
 
         phone = AutoPhone(
-            ip=config["ip"], 
+            ip=ip, 
             port=f"500{index}",
-            host=config["host_local"],
+            host=host_local,
             name=f"T100{index}-{phone_number}",
             auto_connect=False
         )
@@ -135,19 +185,32 @@ def relogin_process(device_info: list):
         xhs.input_sms(code)
         time.sleep(10)
 
-        if not xhs.check_loginState():
-            append_configs("failure_list",device_info)
-        
+        xhs.check_loginState()  
         phone._disconnect_device()
+        return True
+
     except Exception as e:
+        append_ip_config(ip, "failure_list", device_info)
+        return False
         print(f"Error in login_process for {device_info[0]}: {e}")
-        pass
+        
 
 
 if __name__ == '__main__':
 
-    from concurrent.futures import ProcessPoolExecutor
+    # Example 1: Check login state for all devices
+    # Load config for backward compatibility in examples
+    # results = check_loginstate_batch(config["ip"], config["host_local"], config["info_list"])
+    # print("Login state results:", results)
 
-    # Use multiprocessing to process multiple devices in parallel
-    with ProcessPoolExecutor(max_workers=3) as executor:
-        executor.map(relogin_process, config["info_list"])
+    # Example 2: Relogin for all devices in parallel
+    # from concurrent.futures import ProcessPoolExecutor
+    # from functools import partial
+
+    # # Use multiprocessing to process multiple devices in parallel
+    # with ProcessPoolExecutor(max_workers=2) as executor:
+    #     relogin_func = partial(relogin_process, config["ip"], config["host_local"])
+    #     executor.map(relogin_func, config["info_list"])
+
+    # For backward compatibility, load config and call with explicit params
+    check_loginstate_batch(config["ip"], config["host_local"], config["info_list"])

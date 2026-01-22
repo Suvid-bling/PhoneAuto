@@ -8,20 +8,47 @@ def load_config():
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def start_docker(index: int, phone: str, config):
+def start_docker(ip: str, host_local: str, index: int, phone: str):
+    """Start a specific Docker container
+    
+    Args:
+        ip: IP address for the machine
+        host_local: Local host address for API calls
+        index: Device index
+        phone: Phone number
+    """
     name = f"T100{index}-{phone}"
-    #get /dc_api/v1/run/{ip}/{name}
-    url = f"http://{config['host_local']}/dc_api/v1/run/{config['ip']}/{name}"
+    url = f"http://{host_local}/dc_api/v1/run/{ip}/{name}"
     response = requests.get(url)
     print(f"run_docker T100{index}-{phone} >>>>{response.text}")
 
-def start_batch(config:dict):
-    info_list = config["info_list"]
+def start_batch(ip: str, host_local: str, device_info_list: list):
+    """Start all machines in a batch
     
-    for device_info in info_list:
+    Args:
+        ip: IP address for the machines
+        host_local: Local host address for API calls
+        device_info_list: List of device info [phone, index, "", ""]
+    """
+    for device_info in device_info_list:
         phone, index = device_info[0], device_info[1]
-        start_docker(index, phone, config)
+        start_docker(ip, host_local, index, phone)
 
 if __name__ == "__main__":
     config = load_config()
-    start_batch(config)
+    # Extract IP-specific configuration
+    if 'ips' in config:
+        # Multi-IP configuration
+        for ip, ip_config in config['ips'].items():
+            print(f"\nProcessing IP: {ip}")
+            host_local = ip_config['host_local']
+            info_list = ip_config.get('info_list', [])
+            if info_list:
+                start_batch(ip, host_local, info_list)
+    else:
+        # Legacy single-IP configuration
+        ip = config['ip']
+        host_local = config['host_local']
+        info_list = config.get('info_list', [])
+        if info_list:
+            start_batch(ip, host_local, info_list)

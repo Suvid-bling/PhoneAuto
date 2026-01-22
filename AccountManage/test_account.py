@@ -46,7 +46,19 @@ def start_lamda(index: int, phone: str):
     response = requests.post(url, json=data)
     print(f"start_lamda T100{index}-{phone} >>>>{response.text}")
 
-def update_accountlist(info_list: list, ip: str) -> list:
+def update_accountlist(ip: str, host_rpc: str, device_info_list: list, update_account_url: str) -> list:
+    """
+    Update account list on server and return failed devices.
+    
+    Args:
+        ip: IP address for the devices
+        host_rpc: RPC host address
+        device_info_list: List of device info [phone, index, "", ""]
+        update_account_url: URL for updating account list
+        
+    Returns:
+        List of Device_Info that failed (logged out devices)
+    """
     headers = {"Content-Type": "application/json"}
     data = {
         "host": host_rpc,
@@ -67,7 +79,7 @@ def update_accountlist(info_list: list, ip: str) -> list:
                 device_statuses.update(entry)
             
             # 打印所有设备状态并收集需要重新登录的设备
-            for phone, index, _, _ in info_list:
+            for phone, index, _, _ in device_info_list:
                 device_name = f"T100{index}-{phone}"
                 status = device_statuses.get(device_name, "未找到")
                 print(f"{device_name}: {status}")
@@ -86,7 +98,7 @@ def test_account():
     print(f"Testing accounts for IP: {ip}")
     
     # Get all device statuses at once
-    device_statuses = update_accountlist(info_list, ip)
+    device_statuses = update_accountlist(ip, host_rpc, info_list, update_account_url)
     
     print("-" * 50)
 

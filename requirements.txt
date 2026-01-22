@@ -17,5 +17,8 @@ Pillow>=9.0.0
 # Data validation
 pydantic>=1.9.0
 
+# Property-based testing
+hypothesis>=6.0.0
+
 # Custom XHS crawler (may need to be installed from source)
 # xhs-crawler>=0.1.0
