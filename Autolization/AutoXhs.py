@@ -31,7 +31,7 @@ class XhsAutomation:
         # Initialize exception handler
         self.exception_handler = ExceptionHandler(auto_phone)
     
-    def _safe_touch(self, img_name, record_pos, threshold=0.7, 
+    def _safe_touch(self, img_name, record_pos=None, threshold=0.6, 
                      timeout=10, clickpos=False,looptime=5):
         """
         Safe touch method using aircv for image matching
@@ -58,11 +58,14 @@ class XhsAutomation:
             
             exception_solution = self.exceptions_click()
             if not exception_solution:
-                break
+                # If no exception was handled, don't break immediately
+                # Continue trying if we haven't exhausted all attempts
+                if retry_count >= looptime:
+                    break
             time.sleep(3)
 
         # If image matching fails and clickpos is True, use fallback position
-        if clickpos:
+        if clickpos and record_pos is not None:
             x, y = record_pos
             # Convert normalized coordinates to actual coordinates if needed
             if -1 <= x <= 1 and -1 <= y <= 1:
@@ -84,7 +87,7 @@ class XhsAutomation:
         """Switch country code from +86 to +1"""
         self._safe_touch(self.SECOND_CIRCLE_IMG, (-0.324, -0.013), clickpos=True)  # click second little circle
         self.auto_phone.random_sleep()
-        self._safe_touch(self.COUNTRY_CODE_86_IMG, (-0.29, -0.438), clickpos=True)  # click +86 to switch country
+        self._safe_touch("downarrow.png", (-0.29, -0.438), clickpos=True)  # click +86 to switch country
         self.auto_phone.random_sleep()
         self._safe_touch(self.COUNTRY_CODE_1_IMG, (0.357, -0.426), clickpos=True,looptime=5)  # click +1
         self.auto_phone.random_sleep()
@@ -124,9 +127,6 @@ class XhsAutomation:
     def reinto_loginface(self):
         """
         Re-navigate to login interface (for re-login scenarios)
-        
-        Returns:
-            bool: True if successful
         """
         self.agree_go_home()
 
@@ -135,6 +135,13 @@ class XhsAutomation:
         self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=10, threshold=0.7)  # Wait and click start icon
     
 
+        time.sleep(10)
+        if self.auto_phone.element_exists("tpl1768207957769.png"):
+            print("from exist ")
+            self._safe_touch("tpl1768207957769.png", record_pos=(0, 0), clickpos=True, looptime=1)
+        # else:
+        #     self.auto_phone.wait_for_image(self.LOGIN_ELEMENT_IMG, timeout=30)  # wait for login element
+        
         self.auto_phone.wait_for_image(self.LOGIN_ELEMENT_IMG, timeout=30)  # wait for login element
 
         #self._safe_touch("homepagecircle.png", (-0.374, 0.229), threshold=0.7,clickpos=True)  # click little circle
@@ -145,25 +152,27 @@ class XhsAutomation:
 
         return True
  
+
+
     def agree_go_home(self):
         """
         Accept agreements and return to home screen
         """
-        self.auto_phone.random_sleep()
-        self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=5, threshold=0.7)  # Wait and click start icon
-        self.auto_phone.random_sleep()
-        time.sleep(1)
-        self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
+        # self.auto_phone.random_sleep()
+        # self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=5, threshold=0.7)  # Wait and click start icon
+        # self.auto_phone.random_sleep()
+        # time.sleep(3)
+        
+        self.auto_phone.stop_currentApp()
+        #self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
         time.sleep(5)
         self.auto_phone.random_sleep()
         
-        # Force stop app to return to home
-        self.auto_phone.api_adb_shell("am force-stop com.xingin.xhs")
 
     def send_sms(self, phone_number: str):
-        self.switch_country()
+        
         # Input phone number
-        self._safe_touch("tpl1766727477620.png", record_pos=(0.051, -0.375), clickpos=True)  # click "phone Number"
+        self._safe_touch("PhoneInput.png", record_pos=(0.051, -0.375), clickpos=True)  # click "phone Number"
         self.auto_phone.random_sleep()
         self.auto_phone.human_type_text(phone_number)
         self.auto_phone.random_sleep()
@@ -173,7 +182,7 @@ class XhsAutomation:
             pass  # Element exists but not clicked
             
         self.auto_phone.random_sleep()
-        self._safe_touch("FirstLogin.png", record_pos=(-0.019, -0.122), clickpos=True)  # click "login"
+        self._safe_touch("FirstLogin.png", record_pos=(-0.019, -0.122), clickpos=True,looptime=1)  # click "login"
         
         time.sleep(3)
         for _ in range(15):
@@ -188,25 +197,14 @@ class XhsAutomation:
         return True
 
     def resend_sms(self, phone_number: str):
-        """
-        Resend SMS verification code
-        
-        Args:
-            phone_number: Phone number to resend SMS to
-            
-        Returns:
-            bool: True if successful
-        """
-        # self._safe_touch("tpl1766728324773.png", record_pos=(0.333, -0.379), clickpos=True)  # click delete
-        # self.auto_phone.random_sleep()
-        # self.send_sms(phone_number)
+
         self.auto_phone.random_sleep()
         
         # Try to click "Get Code" first, if not found, click "resend"
         if self.auto_phone.element_exists("tpl1766968639367.png", threshold=0.6):
-            self._safe_touch("tpl1766968639367.png", record_pos=(0.296, -0.232), clickpos=True)
+            self._safe_touch("tpl1766968639367.png", record_pos=(0.296, -0.232), clickpos=True,looptime=1)
         else:
-            self._safe_touch("tpl1766728475804.png", record_pos=(0.296, -0.232), clickpos=True)  # click "resend"
+            self._safe_touch("tpl1766728475804.png", record_pos=(0.301, -0.261), clickpos=True,looptime=1)  # click "resend"
         return True
 
     def input_sms(self, sms_code: str):
@@ -220,11 +218,10 @@ class XhsAutomation:
             bool: True if successful
         """
         # Input SMS content
-        self._safe_touch("tpl1766727625112.png", record_pos=(-0.264, -0.231))  # click "Enter code"
+        self._safe_touch("EnterCode.png", record_pos=(-0.264, -0.231))  # click "Enter code"
 
         self.auto_phone.human_type_text(sms_code)
         time.sleep(3.0)  # Wait 3 seconds
-        #self._safe_touch("tpl1766652655771.png", record_pos=(-0.019, -0.122), clickpos=True)
         return True
 
 
@@ -248,6 +245,10 @@ class XhsAutomation:
             self.exceptions_click()
             time.sleep(3)
         
+        time.sleep(5)
+        #self.wait_for_image("logined_flag.png",timeout=20)
+        # if self.auto_phone.element_exists("YellowOpus.png"):
+        #     self._safe_touch("YellowOpus.png")
         # for _ in range(30):            
         #     if self.auto_phone.element_exists("YellowOpus.png")\
         #         or self.auto_phone.element_exists("LoveIcon.png"):
@@ -263,13 +264,17 @@ class XhsAutomation:
         #         return False
             
         #     time.sleep(2)  # Add delay between checks
-
+        check_login()
 
         return True
     
     def check_login(self):
         """Check if user is logged in. Returns False if X.png or loggedOut.png found, True otherwise"""
-        if self.auto_phone.element_exists("X.png") or self.auto_phone.element_exists("loginAgain.png"):
+        if self.auto_phone.element_exists("X.png"):
+            return False
+        elif self.auto_phone.element_exists(self.LOGIN_ELEMENT_IMG):
+            return False
+        elif self.auto_phone.element_exists("loginAgain.png"):
             return False
         return True
 
@@ -299,17 +304,6 @@ class XhsAutomation:
         return True
 
     def multi_direction_swipe(self, x, y, duration=None, hold_time=0.3):
-        """
-        Perform multi-directional swipe in one continuous drag
-        
-        Args:
-            x, y: Starting coordinates
-            duration: Total duration for the entire swipe in seconds (if specified, overrides hold_time)
-            hold_time: Time between each point in seconds (used if duration is None)
-            
-        Returns:
-            bool: True if successful
-        """
         from Autolization.SovleCaptch import get_capcahSolution
         import time
         

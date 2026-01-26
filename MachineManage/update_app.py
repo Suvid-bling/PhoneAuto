@@ -2,17 +2,20 @@ import json
 import requests
 import time
 import logging
+import sys
+import os
+
+# Add parent directory to path to import setting module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from setting import load_config
 
 logger = logging.getLogger(__name__)
 
 # Load config
-with open("config.json", "r", encoding="utf-8") as f:
-    config = json.load(f)
+config = load_config()
+domain = config["global"]["domain"]
+host_rpc = config["global"]["host_rpc"]
 
-domain = config["domain"]
-host_rpc = config["host_rpc"]
-ip = config["ip"]
-info_list = config["info_list"]
 
 def updateApp(dip, dname):
     url = f"{domain}/android/upload_xhs_app/?apk_name=xhs9.15.0.apk"
@@ -30,10 +33,5 @@ def updateApp(dip, dname):
 
 if __name__ == "__main__":
     # Loop through info_list
-    for info in info_list:
-        account_id = info[0]
-        device_num = info[1]
-        dname = f"T100{device_num}-{account_id}"
-        
-        print(f"Updating app for {ip}-{dname}")
-        updateApp(ip,dname)
+
+        updateApp("192.168.124.68","T1002-4385542539")

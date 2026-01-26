@@ -38,16 +38,9 @@ if __name__ == "__main__":
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    domain = config['domain']
-    host_local = config['host_local']
-    ip = config['ip']
-    info_list = config['info_list']
-    
-    """
-    for phone, index, _, _ in info_list:
-        #start_lamda(index, phone) AVOID START LAMDAT IF IN RELOGIN TASK
-        device_name = f"T100{index}-{phone}"
-        change_login_state([device_name])
-    """
+    ip = "192.168.124.68"
+    ip_config = config["ips"][ip]
+    host_local = config["global"]["host_local"]
+    info_list = ip_config["info_list"]
 
     batch_changeLogin_state(ip, host_local, info_list)

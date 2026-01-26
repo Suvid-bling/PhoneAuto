@@ -1,32 +1,3 @@
-<<<<<<< HEAD
-import json
-import os
-import requests
-
-def load_config():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, "..", "config.json")
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def start_docker(index: int, phone: str, config):
-    name = f"T100{index}-{phone}"
-    #get /dc_api/v1/run/{ip}/{name}
-    url = f"http://{config['host_local']}/dc_api/v1/run/{config['ip']}/{name}"
-    response = requests.get(url)
-    print(f"run_docker T100{index}-{phone} >>>>{response.text}")
-
-def start_batch(config:dict):
-    info_list = config["info_list"]
-    
-    for device_info in info_list:
-        phone, index = device_info[0], device_info[1]
-        start_docker(index, phone, config)
-
-if __name__ == "__main__":
-    config = load_config()
-    start_batch(config)
-=======
 import json
 import os
 import requests
@@ -63,6 +34,49 @@ def start_batch(ip: str, host_local: str, device_info_list: list):
         phone, index = device_info[0], device_info[1]
         start_docker(ip, host_local, index, phone)
 
+def check_machinestate(ip: str, host_local: str, name: str):
+    url = f"http://{host_local}/get_android_boot_status/{ip}/{name}"
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        return data.get('code') == 200
+    except Exception as e:
+        print(f"Error checking machine state: {e}")
+        return False
+
+def wait_machines_ready(ip: str, host_local: str, device_info_list: list, max_wait_time: int = 300, check_interval: int = 10):
+    """Wait for all machines to boot up
+    
+    Args:
+        ip: IP address for the machines
+        host_local: Local host address for API calls
+        device_info_list: List of device info [phone, index, "", ""]
+        max_wait_time: Maximum wait time in seconds (default: 300)
+        check_interval: Check interval in seconds (default: 10)
+    
+    Returns:
+        bool: True if all machines ready, False if timeout
+    """
+    import time
+    elapsed_time = 0
+    
+    while elapsed_time < max_wait_time:
+        all_ready = True
+        for device_info in device_info_list:
+            phone, index = device_info[0], device_info[1]
+            name = f"T100{index}-{phone}"
+            if not check_machinestate(ip, host_local, name):
+                all_ready = False
+                break
+        
+        if all_ready:
+            return True
+        
+        time.sleep(check_interval)
+        elapsed_time += check_interval
+    
+    return False
+
 if __name__ == "__main__":
     config = load_config()
     # Extract IP-specific configuration
@@ -81,4 +95,3 @@ if __name__ == "__main__":
         info_list = config.get('info_list', [])
         if info_list:
             start_batch(ip, host_local, info_list)
->>>>>>> 79f43efe8f97865b82f4301ee99fd82b75e4f048

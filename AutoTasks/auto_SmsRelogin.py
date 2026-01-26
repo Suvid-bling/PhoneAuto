@@ -21,11 +21,7 @@ Examples:
 
 import sys
 import os
-<<<<<<< HEAD
-from concurrent.futures import ProcessPoolExecutor
-=======
 import argparse
->>>>>>> 79f43efe8f97865b82f4301ee99fd82b75e4f048
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from AutoTasks.ip_orchestrator import process_all_ips
@@ -35,43 +31,6 @@ def print_summary(results: dict) -> None:
     """
     Print a summary of processing results for all IPs.
     
-<<<<<<< HEAD
-    # Initialize the Machine
-    stop_batch(config)
-    start_batch(config)
-    time.sleep(30)
-
- # SmsRelogin with Multiple Processes
-    with ProcessPoolExecutor(max_workers=2) as executor:
-        executor.map(relogin_process, config["info_list"])
-
-    # Update the Account Login state if login Success
-    batch_changeLogin_state(config)
-    
-    # Update Accountlist in server
-    update_accountlist(batch, config["ip"])
-    time.sleep(120)
-    failure_account = update_accountlist(batch, config["ip"])
-    #clear_configs("failure_list")
-    append_configs("failure_list", failure_account)
-    check_loginstate_batch(batch)
-    stop_batch(config)  #stop Current Machine 
-
-if __name__ == "__main__":
-    config = load_config()
-    groups = group_pools(config["info_pool"])
-    batch_quene = batch_slice(groups)
-    #clear_configs("info_pool")
-    
-    # Stop all machines first
-    names = get_machine_namelist(config)
-    stop_machines_all(names, config)
-    time.sleep(20)
-
-    for batch in batch_quene:
-        process_batch_relogin(batch)
-        #process_batch_relogin(config["failure_list"]) #Retry agian for failure account  
-=======
     Args:
         results: Orchestrator results dict containing IP processing results
     """
@@ -159,4 +118,3 @@ Examples:
 
 if __name__ == "__main__":
     main()  
->>>>>>> 79f43efe8f97865b82f4301ee99fd82b75e4f048

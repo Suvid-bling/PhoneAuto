@@ -29,7 +29,7 @@ class ExceptionHandler:
             "tpl1768442685927.png": None,  # click me 
             "MeAlpha.png": None,  # click me 
             "tryAgian.png": None,
-            "loginAgain.png": None,
+            "tpl1768207957769.png": None, #login Agian
             "waitapp.png": None,
             "agreeCountinue.png": None,
             "SmsLogin.png": None,
@@ -37,7 +37,7 @@ class ExceptionHandler:
             "tpl1766728475804.png": None, 
             #"tpl1766630010007.png": None,  # homepage Login
             # "tpl1766643959547.png": None,  # +86
-            # "tpl1766649447388.png": None,  # +1
+            "tpl1766649447388.png": None,  # +1
             "myt_arrow.png": self.handle_captcha_arrow
             #Todo Add 
         }

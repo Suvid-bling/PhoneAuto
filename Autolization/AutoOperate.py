@@ -252,6 +252,28 @@ class AutoPhone:
             print(f"Error clearing apps and cache: {e}")
             return False
 
+    def stop_currentApp(self):
+        """
+        create methods that simulate clear app backend by hand 
+        1. open the clear window 
+        2. swipe from low to high for simulate hand swipe 
+        """
+        # Open recent apps (multitasking) window
+        self.api_adb_shell("input keyevent KEYCODE_APP_SWITCH")
+        time.sleep(2)
+        
+        # Swipe with maximum distance from bottom to top of screen
+        self.api_adb_shell("input swipe 283 950 283 -50 500")
+        time.sleep(2)
+        
+        # Return to home screen
+        self.api_adb_shell("input keyevent KEYCODE_HOME")
+        time.sleep(2)
+
+        # Tap center of screen
+        self.api_adb_shell("input keyevent KEYCODE_HOME")
+        self.random_sleep()
+
     def pos_swipe(self, start_pos, swipe_vector, duration=300):
         """
         Swipe from start position with given vector using ADB

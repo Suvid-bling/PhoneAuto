@@ -17,40 +17,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from MachineManage.stop_machine import stop_batch, stop_machines_all, get_machine_namelist
 from MachineManage.start_machine import start_batch
+from MachineManage.lock_machine import lock_machine, release_machine_lock
 from setting import write_ip_config, append_ip_config, group_pools, batch_slice
 from AccountManage.prologin_initial import batch_changeLogin_state
+from AccountManage.account_requests import accountGet_ip
 from SMSLogin.SmsRelogin import relogin_process, check_loginstate_batch
 from AccountManage.test_account import update_accountlist
-
+from MachineManage.start_machine import wait_machines_ready
 
 def process_single_batch(ip: str, ip_config: dict, global_config: dict, batch: list) -> dict:
-    """
-    Process a single batch of devices for an IP.
-    
-    This function executes the complete relogin workflow for a batch:
-    1. Write batch to IP's info_list
-    2. Stop and start machines
-    3. Execute relogin with multiprocessing
-    4. Update login state
-    5. Update account list on server
-    6. Track failures
-    7. Check login state
-    8. Stop batch machines
-    
-    Args:
-        ip: IP address to process
-        ip_config: Configuration specific to this IP
-        global_config: Global configuration (domain, redis_url, etc.)
-        batch: List of Device_Info items to process
-    
-    Returns:
-        dict: Batch results with keys:
-            - success_count: Number of successful devices
-            - failure_count: Number of failed devices
-            - failures: List of Device_Info that failed
-    
-    Requirements: 4.1, 4.2, 4.3, 4.5, 10.4
-    """
+
     print(f"\n{'='*60}")
     print(f"Processing batch for IP {ip}: {len(batch)} devices")
     print(f"{'='*60}\n")
@@ -69,8 +45,10 @@ def process_single_batch(ip: str, ip_config: dict, global_config: dict, batch: l
     
     print(f"Starting batch machines for IP {ip}...")
     start_batch(ip, host_local, batch)
-    time.sleep(30)
     
+    wait_machines_ready(ip, host_local, batch)
+    time.sleep(5)
+
     # 3. Execute relogin with multiprocessing
     print(f"Executing SMS relogin for {len(batch)} devices...")
     with ProcessPoolExecutor(max_workers=2) as executor:
@@ -81,17 +59,18 @@ def process_single_batch(ip: str, ip_config: dict, global_config: dict, batch: l
     print(f"Updating login state for batch...")
     batch_changeLogin_state(ip, host_local, batch)
     
-    # 5. Update account list on server
+    # # 5. Update account list on server and wait for hooks to be ready
     print(f"Updating account list on server...")
     update_accountlist(ip, host_rpc, batch, update_account_url)
-    time.sleep(120)
     
-    # 6. Get failures and update failure list
-    print(f"Checking for failed devices...")
-    failure_devices = update_accountlist(ip, host_rpc, batch, update_account_url)
+    # # Wait for all hooks to work properly
+    time.sleep(100)
+
     
-    for device in failure_devices:
-        append_ip_config(ip, "failure_list", device)
+    # # 6. Get failures and update failure list
+    # print(f"Checking for failed devices...")
+    update_accountlist(ip, host_rpc, batch, update_account_url)
+
     
     # 7. Check login state
     print(f"Checking login state for batch...")
@@ -101,7 +80,8 @@ def process_single_batch(ip: str, ip_config: dict, global_config: dict, batch: l
     print(f"Stopping batch machines...")
     stop_batch(ip, host_local, batch)
     
-    # Calculate results
+    # Calculate results (no failures tracked when update_accountlist is commented out)
+    failure_devices = []
     success_count = len(batch) - len(failure_devices)
     failure_count = len(failure_devices)
     
@@ -148,49 +128,109 @@ def process_ip_batches(ip: str, ip_config: dict, global_config: dict) -> dict:
     print(f"# Starting IP Processing: {ip}")
     print(f"{'#'*60}\n")
     
-    # 1. Load IP-specific data
-    info_pool = ip_config["info_pool"]
-    host_local = global_config["host_local"]
+    # 1. Lock the IP to prevent concurrent processing
+    print(f"Acquiring lock for IP {ip}...")
+    if not lock_machine(ip):
+        print(f"Failed to acquire lock for IP {ip}. IP is already being processed.")
+        return {
+            "ip": ip,
+            "success_count": 0,
+            "failure_count": 0,
+            "processed_batches": 0,
+            "failures": [],
+            "error": "Failed to acquire IP lock"
+        }
     
-    print(f"IP {ip} has {len(info_pool)} devices in info_pool")
-    
-    # 2. Create batches from info_pool
-    print(f"Creating batches from info_pool...")
-    groups = group_pools(info_pool)
-    batch_queue = batch_slice(groups)
-    
-    print(f"Created {len(batch_queue)} batches for IP {ip}")
-    
-    # 3. Stop all machines for this IP
-    print(f"Stopping all machines for IP {ip}...")
-    names = get_machine_namelist(ip, host_local)
-    stop_machines_all(ip, host_local, names)
-    time.sleep(20)
-    
-    # 4. Process each batch
-    results = {
-        "ip": ip,
-        "success_count": 0,
-        "failure_count": 0,
-        "processed_batches": 0,
-        "failures": []
-    }
-    
-    for batch_idx, batch in enumerate(batch_queue, 1):
-        print(f"\n--- Processing batch {batch_idx}/{len(batch_queue)} for IP {ip} ---")
+    try:
+        # 2. Auto-fill info_pool from account API
+        print(f"Fetching logout accounts for IP {ip}...")
+        logout_accounts = accountGet_ip(ip)
         
-        batch_result = process_single_batch(ip, ip_config, global_config, batch)
+        if logout_accounts:
+            print(f"IP {ip} has {len(logout_accounts)} logout accounts. Writing to info_pool...")
+            # Write logout accounts directly to info_pool in config.json
+            write_ip_config(ip, "info_pool", logout_accounts)
+            print(f"Successfully updated info_pool for IP {ip}")
+            # Update the local ip_config to reflect the changes
+            ip_config["info_pool"] = logout_accounts 
+       
+        # 3. Load IP-specific data
+        info_pool = ip_config["info_pool"]
+        host_local = global_config["host_local"]
         
-        results["processed_batches"] += 1
-        results["success_count"] += batch_result["success_count"]
-        results["failure_count"] += batch_result["failure_count"]
-        results["failures"].extend(batch_result["failures"])
+        print(f"IP {ip} has {len(info_pool)} devices in info_pool")
+        
+        # 4. Create batches from info_pool
+        print(f"Creating batches from info_pool...")
+        groups = group_pools(info_pool)
+        batch_queue = batch_slice(groups)
+        
+        print(f"Created {len(batch_queue)} batches for IP {ip}")
+        
+        # 5. Stop all machines for this IP
+        print(f"Stopping all machines for IP {ip}...")
+        names = get_machine_namelist(ip, host_local)
+        stop_machines_all(ip, host_local, names)
+        time.sleep(10)
+        
+        # 6. Process each batch
+        results = {
+            "ip": ip,
+            "success_count": 0,
+            "failure_count": 0,
+            "processed_batches": 0,
+            "failures": []
+        }
+        
+        for batch_idx, batch in enumerate(batch_queue, 1):
+            print(f"\n--- Processing batch {batch_idx}/{len(batch_queue)} for IP {ip} ---")
+            
+            batch_result = process_single_batch(ip, ip_config, global_config, batch)
+            
+            results["processed_batches"] += 1
+            results["success_count"] += batch_result["success_count"]
+            results["failure_count"] += batch_result["failure_count"]
+            results["failures"].extend(batch_result["failures"])
+        
+        print(f"\n{'#'*60}")
+        print(f"# Completed IP Processing: {ip}")
+        print(f"# Total Success: {results['success_count']}")
+        print(f"# Total Failures: {results['failure_count']}")
+        print(f"# Batches Processed: {results['processed_batches']}")
+        print(f"{'#'*60}\n")
+        
+        return results
     
-    print(f"\n{'#'*60}")
-    print(f"# Completed IP Processing: {ip}")
-    print(f"# Total Success: {results['success_count']}")
-    print(f"# Total Failures: {results['failure_count']}")
-    print(f"# Batches Processed: {results['processed_batches']}")
-    print(f"{'#'*60}\n")
+    except KeyboardInterrupt:
+        print(f"\n[!] User cancelled processing for IP {ip}")
+        raise
+    except Exception as e:
+        print(f"\n[!] Error processing IP {ip}: {e}")
+        raise
+    finally:
+        # 7. Release the IP lock after processing completes (always executes)
+        print(f"Releasing lock for IP {ip}...")
+        release_machine_lock(ip)
+
+if __name__ == "__main__":
+    from setting import load_config
     
-    return results
+    # Set IP here - change this to the IP you want to process
+    selected_ip = "192.168.124.18"
+    
+    # Load configuration
+    config = load_config()
+    
+    # Get IP-specific and global configs
+    ip_config = config["ips"][selected_ip]
+    global_config = config["global"]
+    results = process_ip_batches(selected_ip, ip_config, global_config)
+    
+    # Print final results
+    print(f"\n{'='*60}")
+    print(f"FINAL RESULTS FOR IP {selected_ip}")
+    print(f"{'='*60}")
+    print(f"Total Success: {results['success_count']}")
+    print(f"Total Failures: {results['failure_count']}")
+    print(f"Batches Processed: {results['processed_batches']}")
+    print(f"{'='*60}\n")

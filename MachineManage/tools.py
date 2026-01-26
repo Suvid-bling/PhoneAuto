@@ -11,13 +11,21 @@ config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
 with open(config_path, 'r') as f:
     config = json.load(f)
 
-host_local = config["host_local"]
-ip = config["ip"]
-domain = config["domain"]
-host_rpc = config["host_rpc"]
-update_account_url = config["update_account_url"]
-info_list = config["info_list"]
-def qiehuan_device(index):
+# Extract global config
+global_config = config.get("global", {})
+host_local = global_config.get("host_local")
+domain = global_config.get("domain")
+host_rpc = global_config.get("host_rpc")
+update_account_url = global_config.get("update_account_url")
+
+# For backward compatibility with single-IP config
+if not host_local and "host_local" in config:
+    host_local = config["host_local"]
+    domain = config["domain"]
+    host_rpc = config["host_rpc"]
+    update_account_url = config["update_account_url"]
+
+def qiehuan_device(ip, index):
     url = f"{domain}/android/changeDevice/"
     data = {
         "host": host_rpc,
@@ -27,7 +35,7 @@ def qiehuan_device(index):
     response = requests.post(url, json=data)
     print(response.text)
 
-def random_device():
+def random_device(ip):
     url = f"{domain}/android/randomDeviceList/"
     data = {
         "host": host_rpc,
@@ -52,13 +60,13 @@ def change_login_state(data):
     response = requests.post(url, json=data)
     print(response.text)
 
-def delete_docker(index: int, phone: str):
+def delete_docker(ip, index: int, phone: str):
     name = f"T100{index}-{phone}"
     url = f"http://{host_local}/dc_api/v1/remove/{ip}/{name}"
     response=requests.get(url)
     print(f"delete_docker T100{index}-{phone} >>>>{response.text}")
 
-def updateAccountHeaders():
+def updateAccountHeaders(ip):
     # check: 检查账号状态
     data={
         "host": host_rpc,
@@ -163,7 +171,7 @@ def copy_yaml(dip,dname):
     api_adb_shell(dip,dname,"cp /data/local/tmp/xhs.9.7.0.spawn.yaml /data/usr/modules/script/xhs.9.7.0.spawn.yaml", timeout=10)
 
 
-def update_lamda_and_yaml():
+def update_lamda_and_yaml(ip):
     devices = get_ip_devices(ip)
     for device in devices:
         try:
@@ -181,6 +189,13 @@ def update_lamda_and_yaml():
 
 
 if __name__ == '__main__':
+    # For backward compatibility, try to get info_list from old config format
+    info_list = config.get("info_list", [])
+    if not info_list and "ips" in config:
+        # Get first IP's info_pool as example
+        first_ip = list(config["ips"].keys())[0]
+        info_list = config["ips"][first_ip].get("info_pool", [])
+    
     # Generate device names from config info_list
     device_names = [f"T100{item[1]}-{item[0]}" for item in info_list]
     
