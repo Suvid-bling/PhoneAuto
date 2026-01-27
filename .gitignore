@@ -1,20 +1,21 @@
-# Resources folder
-resources/
+# Python virtual environment
+.phoneautoEnv/
 
-# Python
+# Resources directory (except txt files)
+resources/*
+!resources/*.txt
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-.venv/
-venv/
-ENV/
-env/
+
+# Hypothesis testing
+.hypothesis/
 
 # IDE
 .vscode/
-.idea/
 *.swp
 *.swo
 *~
@@ -25,4 +26,3 @@ Thumbs.db
 
 # Logs
 *.log
-develop_log.txt

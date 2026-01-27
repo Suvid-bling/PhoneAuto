@@ -201,10 +201,11 @@ class XhsAutomation:
         self.auto_phone.random_sleep()
         
         # Try to click "Get Code" first, if not found, click "resend"
-        if self.auto_phone.element_exists("tpl1766968639367.png", threshold=0.6):
-            self._safe_touch("tpl1766968639367.png", record_pos=(0.296, -0.232), clickpos=True,looptime=1)
-        else:
-            self._safe_touch("tpl1766728475804.png", record_pos=(0.301, -0.261), clickpos=True,looptime=1)  # click "resend"
+        # if self.auto_phone.element_exists("tpl1766968639367.png", threshold=0.6):
+        #     self._safe_touch("tpl1766968639367.png", record_pos=(0.296, -0.232), clickpos=True,looptime=1)
+        # else:
+        #     self._safe_touch("tpl1766728475804.png", record_pos=(0.301, -0.261), clickpos=True,looptime=1)  # click "resend"
+        self.auto_phone.api_adb_shell("input tap 577 460")
         return True
 
     def input_sms(self, sms_code: str):

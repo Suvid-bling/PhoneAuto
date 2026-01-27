@@ -115,7 +115,7 @@ def call_SmsUrl(sms_url: str):
     from requests.exceptions import SSLError, RequestException
     
     max_attempts = 22
-    max_retries = 3
+    max_retries = 4
     file_path = "resources/verificated_sms.txt"
     
     # Load existing codes
@@ -245,7 +245,7 @@ def relogin_process(ip: str, host_local: str, device_info: list):
 if __name__ == '__main__':
 
     # Use multiprocessing to process multiple devices in parallel
-    ip = "192.168.124.18"
+    ip = "192.168.124.68"
     ip_config = config["ips"][ip]
     
     # Start the machines included in info_list of 192.168.124.26
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     else:
         print("Warning: Some machines may not be ready yet")
     
-    with ProcessPoolExecutor(max_workers=3) as executor:
+    with ProcessPoolExecutor(max_workers=4) as executor:
         relogin_func = partial(relogin_process, ip, config["global"]["host_local"])
         executor.map(relogin_func, ip_config["info_list"])
 

@@ -162,7 +162,8 @@ if __name__ == "__main__":
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    ip = "192.168.124.68"
+    ip = "172.16.212.171"
+
 
     status = update_accountlist(ip, host_rpc, info_list, update_account_url)
 

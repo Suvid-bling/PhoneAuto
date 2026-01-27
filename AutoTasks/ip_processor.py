@@ -51,7 +51,7 @@ def process_single_batch(ip: str, ip_config: dict, global_config: dict, batch: l
 
     # 3. Execute relogin with multiprocessing
     print(f"Executing SMS relogin for {len(batch)} devices...")
-    with ProcessPoolExecutor(max_workers=2) as executor:
+    with ProcessPoolExecutor(max_workers=4) as executor:
         relogin_func = partial(relogin_process, ip, host_local)
         executor.map(relogin_func, batch)
     
