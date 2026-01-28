@@ -73,6 +73,8 @@ def main():
 Examples:
   %(prog)s --mode sequential
   %(prog)s --mode parallel --max-parallel 5
+  %(prog)s --ips 192.168.124.19 192.168.124.17
+  %(prog)s --mode parallel --ips 192.168.124.19 192.168.124.17
         """
     )
     
@@ -91,7 +93,25 @@ Examples:
         help='Maximum number of IPs to process concurrently in parallel mode (default: 3)'
     )
     
+    parser.add_argument(
+        '--ips',
+        type=str,
+        nargs='+',
+        help='Specific IP addresses to process (space-separated). If not provided, all IPs will be processed.'
+    )
+    
     args = parser.parse_args()
+    
+    # Hardcoded IPs list - modify this to select specific IPs
+    Ips = [
+
+       "192.168.124.19",
+       "192.168.124.18",
+
+    ]
+    
+    # Use hardcoded IPs if args.ips is not provided
+    selected_ips = args.ips if args.ips else Ips
     
     # Validate max_parallel
     if args.max_parallel < 1:
@@ -100,7 +120,7 @@ Examples:
     
     try:
         # Process all IPs using the orchestrator
-        results = process_all_ips(mode=args.mode, max_parallel=args.max_parallel)
+        results = process_all_ips(mode=args.mode, max_parallel=args.max_parallel, selected_ips=selected_ips)
         
         # Print summary of results
         print_summary(results)

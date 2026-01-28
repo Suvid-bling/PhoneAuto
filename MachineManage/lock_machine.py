@@ -85,7 +85,7 @@ if __name__ == '__main__':
     release_machine_lock("192.168.124.50")
     release_machine_lock("172.16.227.32")
     release_machine_lock("172.16.212.171")
-    release_machine_lock("172.16.209.72")
+    #release_machine_lock("172.16.209.72")
     release_machine_lock("172.16.42.55")
     release_machine_lock("172.16.204.10")
     #release_machine_lock("192.168.124.17")

@@ -245,7 +245,7 @@ def relogin_process(ip: str, host_local: str, device_info: list):
 if __name__ == '__main__':
 
     # Use multiprocessing to process multiple devices in parallel
-    ip = "192.168.124.68"
+    ip = "192.168.124.18"
     ip_config = config["ips"][ip]
     
     # Start the machines included in info_list of 192.168.124.26

@@ -152,7 +152,17 @@ def process_ip_batches(ip: str, ip_config: dict, global_config: dict) -> dict:
             write_ip_config(ip, "info_pool", logout_accounts)
             print(f"Successfully updated info_pool for IP {ip}")
             # Update the local ip_config to reflect the changes
-            ip_config["info_pool"] = logout_accounts 
+            ip_config["info_pool"] = logout_accounts
+        else:
+            print(f"IP {ip} has no logout accounts. Skipping this IP.")
+            return {
+                "ip": ip,
+                "success_count": 0,
+                "failure_count": 0,
+                "processed_batches": 0,
+                "skipped": True,
+                "reason": "No logout accounts found"
+            }
        
         # 3. Load IP-specific data
         info_pool = ip_config["info_pool"]

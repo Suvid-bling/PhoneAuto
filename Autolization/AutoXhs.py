@@ -110,15 +110,10 @@ class XhsAutomation:
         self.auto_phone.wait_for_image("tpl1766713067778.png", timeout=50)
 
         self.auto_phone.random_sleep()
-        self._safe_touch(self.LOGIN_ELEMENT_IMG, (0.399, 0.844), clickpos=True)  # click me to login
+        self._safe_touch("MeAlpha.png", (0.399, 0.844), clickpos=True,looptime=1)  # click me to login
         self.auto_phone.random_sleep()
         time.sleep(2)
-
-        self.exceptions_click()
-        self.exceptions_click()
         
-        self.auto_phone.random_sleep()
-        self._safe_touch("tpl1766630007249.png", (-0.374, 0.229), threshold=0.5)  # click little circle
         self.auto_phone.random_sleep()
         self._safe_touch(self.LOGIN_ELEMENT_IMG, (-0.062, 0.06))  # click homepage login
         self.auto_phone.random_sleep()
@@ -128,10 +123,12 @@ class XhsAutomation:
         """
         Re-navigate to login interface (for re-login scenarios)
         """
-        self.agree_go_home()
-
+        self.auto_phone.stop_currentApp()
+        #self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
+        time.sleep(5)
         self.auto_phone.random_sleep()
-    
+
+        
         self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=10, threshold=0.7)  # Wait and click start icon
     
 
@@ -158,15 +155,13 @@ class XhsAutomation:
         """
         Accept agreements and return to home screen
         """
-        # self.auto_phone.random_sleep()
-        # self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=5, threshold=0.7)  # Wait and click start icon
-        # self.auto_phone.random_sleep()
-        # time.sleep(3)
-        
-        self.auto_phone.stop_currentApp()
-        #self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
-        time.sleep(5)
         self.auto_phone.random_sleep()
+        self.auto_phone.wait_and_click(self.START_ICON_IMG, timeout=5, threshold=0.7)  # Wait and click start icon
+        self.auto_phone.random_sleep()
+        time.sleep(3)
+        
+        self._safe_touch("tpl1766629849292.png", record_pos=(0.018, 0.418))  # Agree Icon
+
         
 
     def send_sms(self, phone_number: str):

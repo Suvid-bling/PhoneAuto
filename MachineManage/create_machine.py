@@ -6,33 +6,60 @@ import time
 import asyncio
 import pprint
 import redis
-from SMSLogin.Auto import AutoPhone
 import requests
 from multiprocessing import Pool
 from functools import partial
 from MachineManage.tools import change_login_state,TransName
+from Autolization.AutoOperate import AutoPhone
 import json
-from xhs_crawler.XhsInterfaceService import XhsInterfaceService
 
 # Load configuration from JSON file
-CONFIG_FILE = "config.json"  # Change this to switch between configs
+CONFIG_FILE = "config.json"
+SELECTED_IP = "192.168.124.60"  # Change this to select different IP
+
 config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), CONFIG_FILE)
 
 with open(config_path, 'r', encoding='utf-8') as f:
     config = json.load(f)
 
-# Extract configuration variables
-ip_dict = config["ip_dict"]
-domain = config["domain"]
-image = config["image"]
-host_local = config["host_local"]
-host_rpc = config["host_rpc"]
-redis_url = config["redis_url"]
-update_account_url = config["update_account_url"]
-ip = config["ip"]
-info_list = config["info_list"]
+# Extract global configuration variables
+ip_dict = config["global"]["ip_dict"]
+domain = config["global"]["domain"]
+image = config["global"]["image"]
+host_local = config["global"]["host_local"]
+host_rpc = config["global"]["host_rpc"]
+redis_url = config["global"]["redis_url"]
+update_account_url = config["global"]["update_account_url"]
+
+# Extract IP-specific configuration
+ip = "192.168.124.68"
+if ip not in config["ips"]:
+    raise ValueError(f"IP {ip} not found in config.json")
+
+ip_config = config["ips"][ip]
+info_list = ip_config["info_list"]
 
 gateway_route = "http://36.133.80.179:7152/"+ip_dict[ip]+"-T100{index}" # 远程RPC地址 
+
+def reupload_cert(index, phone):
+    """Re-upload certificate"""
+    url = f"{domain}/keybox/upload_cert"
+    data = {
+        "host": host_rpc,
+        "ip": ip,
+        "name": f"T100{index}-{phone}",
+    }
+    response = requests.post(url, json=data)
+    print(f"reupload_cert T100{index}-{phone} >>>>{response.text}")
+    
+    try:
+        result = response.json()
+        message = result.get("message", "")
+        print(f"Response message: {message}")
+        return "上传证书成功" in message
+    except Exception as e:
+        print(f"Error parsing response: {e}")
+        return False
 
 def random_device(index, phone):
         """Randomize device information"""
@@ -47,14 +74,26 @@ def random_device(index, phone):
         print(f"random_device T100{index}-{phone} >>>>{response.text}")
         result = response.json()
         
-        if not result.get("data", {}).get("upload_cert_success", False)\
-        or "随机设备信息失败" in result.get("msg", ""):
+        if not result.get("data", {}).get("upload_cert_success", False):
+            for attempt in range(3):  # Try up to 3 times
+                if reupload_cert(index, phone):
+                    break
+                time.sleep(1)
+            else:
+                # Loop completed without break - all retries failed
+                print(f"Failed to upload cert after 3 attempts for T100{index}-{phone}")
+                return False
+
+        msg = result.get("msg", "")
+        if "随机设备信息失败" in msg or "设置代理失败" in msg:
             return False
+
+        
         return True
 
 def create_docker(phone: str, index: int,sendCodeUrl,verifyCodeUrl):
 
-    url = f"{self.domain}/android/create/?apk_name=xhs9.15.0.apk&yaml_name=xhs.9.15.0.spawn.resp.yaml"
+    url = f"{domain}/android/create/?apk_name=xhs9.15.0.apk&yaml_name=xhs.9.15.0.spawn.resp.yaml"
     data = {
         "phone": phone,
         "country_code": "+1",
@@ -108,22 +147,20 @@ def process_device(info,IFlogin):
 
         for attempt in range(3):  # Try up to 3 times
             create_result = create_docker(_phone, _index, _sendCodeUrl, _verifyCodeUrl)
-            refresh = random_device(_index, _phone)
-            retry_count = 0
-            while not refresh and retry_count < 4:
-                refresh = random_device(_index, _phone)
-                retry_count += 1
             
-            if refresh:
-                break  # Success, exit the for loop
-            else:
-                # Failed after 3 retries, delete docker and try again
+            if random_device(_index, _phone):
+                # Success, break out of loop
+                print(f"\033[92mSuccessfully created android docker: T100{_index}-{_phone}\033[0m")
+                break
+            else:                    
+                # Failed, delete docker and retry
                 delete_docker(_index, _phone)
-                if attempt < 3:  # Don't print on last attempt
+                if attempt < 2:  # Don't print on last attempt
                     print(f"Attempt {attempt + 1} failed, retrying...")
-        
-        if not refresh:
-            print(f"Failed to refresh after 3 attempts for phone: {_phone}")
+                time.sleep(2)
+        else:
+            # Loop completed without break - all retries failed
+            print(f"\033[91mFailed to create android docker after 3 attempts: T100{_index}-{_phone}\033[0m")
             return False
 
         """设置锁屏和指纹"""

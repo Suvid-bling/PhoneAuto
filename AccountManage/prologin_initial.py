@@ -38,7 +38,7 @@ if __name__ == "__main__":
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    ip = "172.16.42.55"
+    ip = "192.168.124.68"
     ip_config = config["ips"][ip]
     host_local = config["global"]["host_local"]
     info_list = ip_config["info_list"]

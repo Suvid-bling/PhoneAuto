@@ -15,16 +15,20 @@ import requests
 
 # Load configuration from JSON file
 config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
-with open(config_path, 'r') as f:
-    config = json.load(f)
+try:
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    print(f"Warning: Could not load config.json at {config_path}: {e}")
+    config = {'global': {}}
 
 # Extract configuration values from global section
-global_config = config['global']
-domain = global_config['domain']
-host_local = global_config['host_local']
-host_rpc = global_config['host_rpc']
-redis_url = global_config['redis_url']
-update_account_url = global_config['update_account_url']
+global_config = config.get('global', {})
+domain = global_config.get('domain', '')
+host_local = global_config.get('host_local', '')
+host_rpc = global_config.get('host_rpc', '')
+redis_url = global_config.get('redis_url', '')
+update_account_url = global_config.get('update_account_url', '')
 
 # These need to be specified - using placeholder for now
 ip = None  # TODO: Specify which IP to use
@@ -162,7 +166,7 @@ if __name__ == "__main__":
     with open(config_path, 'r') as f:
         config = json.load(f)
     
-    ip = "172.16.212.171"
+    ip = "192.168.124.68"
 
 
     status = update_accountlist(ip, host_rpc, info_list, update_account_url)

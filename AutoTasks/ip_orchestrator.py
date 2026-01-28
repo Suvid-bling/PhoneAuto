@@ -127,7 +127,7 @@ def process_parallel(ips: list, config: dict, global_config: dict, max_parallel:
     return results
 
 
-def process_all_ips(mode: str = "sequential", max_parallel: int = 3) -> dict:
+def process_all_ips(mode: str = "sequential", max_parallel: int = 3, selected_ips: list = None) -> dict:
     """
     Process all configured IPs either sequentially or in parallel.
     
@@ -138,6 +138,7 @@ def process_all_ips(mode: str = "sequential", max_parallel: int = 3) -> dict:
     Args:
         mode: Processing mode - "sequential" or "parallel"
         max_parallel: Maximum number of IPs to process concurrently (parallel mode only)
+        selected_ips: Optional list of specific IPs to process. If None, all IPs are processed.
     
     Returns:
         dict: Orchestrator results with keys:
@@ -158,7 +159,14 @@ def process_all_ips(mode: str = "sequential", max_parallel: int = 3) -> dict:
     # Load configuration
     config = load_config()
     global_config = config.get("global", {})
-    ips = get_all_ips()
+    
+    # Get IPs to process
+    if selected_ips:
+        ips = selected_ips
+        print(f"\n{'*'*60}")
+        print(f"* Using selected IPs: {', '.join(ips)}")
+    else:
+        ips = get_all_ips()
     
     print(f"\n{'*'*60}")
     print(f"* IP Orchestrator Starting")
