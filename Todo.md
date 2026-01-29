@@ -1,3 +1,7 @@
+### 1.29 TODO:
+1.**resolve the github upload problem** 
+2.**give improvement for the project ,make it structure clear**
+
 ### Improve Structure
 
 ### Add Human like user operation such like following and like to simulate real person 

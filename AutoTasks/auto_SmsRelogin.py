@@ -105,8 +105,7 @@ Examples:
     # Hardcoded IPs list - modify this to select specific IPs
     Ips = [
 
-       "192.168.124.19",
-       "192.168.124.18",
+
 
     ]
     

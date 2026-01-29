@@ -1,21 +1,24 @@
 # Python virtual environment
 .phoneautoEnv/
 
-# Resources directory (except txt files)
+# Resources directory (only keep specific txt files)
 resources/*
-!resources/*.txt
+!resources/verificated_sms.txt
+!resources/active_phonenumber.txt
 
 # Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyc
 
 # Hypothesis testing
 .hypothesis/
 
 # IDE
 .vscode/
+.kiro/
 *.swp
 *.swo
 *~
@@ -26,3 +29,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Config files with sensitive data
+config.json
+*config.txt
