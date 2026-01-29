@@ -1,6 +1,11 @@
 # Python virtual environment
 .phoneautoEnv/
 
+# Large archive files
+*.rar
+*.zip
+*.tar.gz
+
 # Resources directory (only keep specific txt files)
 resources/*
 !resources/verificated_sms.txt
